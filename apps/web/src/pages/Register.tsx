@@ -142,7 +142,7 @@ export const Register: React.FC = () => {
               Plant Operations Director or Supervisor?
             </p>
             <p className="text-xs text-slate-400 mt-0.5">
-              Please sign in using your designated administrator account (<span className="font-mono text-slate-600">admin@demo.com</span>).
+              Please sign in using your designated administrator account (<span className="font-mono text-slate-600 font-semibold">sidd@gmail.com</span>).
             </p>
             <div className="mt-3">
               <Link to="/login" className="inline-flex items-center text-xs font-semibold text-brand-600 hover:underline">

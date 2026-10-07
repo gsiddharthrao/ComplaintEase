@@ -22,79 +22,14 @@ export interface StoredUser {
 }
 
 export const BASELINE_USERS: Record<string, StoredUser> = {
-  'admin@demo.com': {
-    user: { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', email: 'admin@demo.com' },
-    password: 'Demo1234!',
+  'sidd@gmail.com': {
+    user: { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', email: 'sidd@gmail.com' },
+    password: 'Sidd1234',
     profile: {
       id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-      full_name: 'Marcus Vance (Plant Operations Director)',
+      full_name: 'Siddharth (Plant Operations Director)',
       role: 'admin',
       department_id: null,
-      avatar_url: null,
-      created_at: '2026-10-01T08:00:00.000Z',
-      updated_at: '2026-10-01T08:00:00.000Z',
-    },
-  },
-  'employee@demo.com': {
-    user: { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', email: 'employee@demo.com' },
-    password: 'Demo1234!',
-    profile: {
-      id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-      full_name: 'Alex Rivera (Plant Shift Operator)',
-      role: 'employee',
-      department_id: '11111111-1111-1111-1111-111111111111',
-      avatar_url: null,
-      created_at: '2026-10-01T08:00:00.000Z',
-      updated_at: '2026-10-01T08:00:00.000Z',
-    },
-  },
-  'priya.it@demo.com': {
-    user: { id: 'wwwwwwww-1111-1111-1111-111111111111', email: 'priya.it@demo.com' },
-    password: 'Demo1234!',
-    profile: {
-      id: 'wwwwwwww-1111-1111-1111-111111111111',
-      full_name: 'Priya Sharma (SCADA & Automation Lead)',
-      role: 'employee',
-      department_id: '55555555-5555-5555-5555-555555555555',
-      avatar_url: null,
-      created_at: '2026-10-01T08:00:00.000Z',
-      updated_at: '2026-10-01T08:00:00.000Z',
-    },
-  },
-  'ravi.facilities@demo.com': {
-    user: { id: 'wwwwwwww-2222-2222-2222-222222222222', email: 'ravi.facilities@demo.com' },
-    password: 'Demo1234!',
-    profile: {
-      id: 'wwwwwwww-2222-2222-2222-222222222222',
-      full_name: 'Ravi Kumar (Boiler & Utilities Specialist)',
-      role: 'employee',
-      department_id: '44444444-4444-4444-4444-444444444444',
-      avatar_url: null,
-      created_at: '2026-10-01T08:00:00.000Z',
-      updated_at: '2026-10-01T08:00:00.000Z',
-    },
-  },
-  'vikram.electrician@demo.com': {
-    user: { id: 'wwwwwwww-3333-3333-3333-333333333333', email: 'vikram.electrician@demo.com' },
-    password: 'Demo1234!',
-    profile: {
-      id: 'wwwwwwww-3333-3333-3333-333333333333',
-      full_name: 'Vikram Singh (Industrial Electrical Lead)',
-      role: 'employee',
-      department_id: '22222222-2222-2222-2222-222222222222',
-      avatar_url: null,
-      created_at: '2026-10-01T08:00:00.000Z',
-      updated_at: '2026-10-01T08:00:00.000Z',
-    },
-  },
-  'ananya.hr@demo.com': {
-    user: { id: 'wwwwwwww-4444-4444-4444-444444444444', email: 'ananya.hr@demo.com' },
-    password: 'Demo1234!',
-    profile: {
-      id: 'wwwwwwww-4444-4444-4444-444444444444',
-      full_name: 'Ananya Roy (Industrial Safety & EHS Officer)',
-      role: 'employee',
-      department_id: '33333333-3333-3333-3333-333333333333',
       avatar_url: null,
       created_at: '2026-10-01T08:00:00.000Z',
       updated_at: '2026-10-01T08:00:00.000Z',
@@ -156,13 +91,15 @@ class MockStore {
   private cleanLegacyDummyData() {
     if (typeof window === 'undefined') return;
     try {
-      const CLEAN_FLAG = 'complaintease_clean_slate_v4';
+      const CLEAN_FLAG = 'complaintease_clean_slate_v5';
       if (localStorage.getItem(CLEAN_FLAG) !== 'true') {
         localStorage.removeItem('complaintease_complaints');
         localStorage.removeItem('complaintease_comments');
         localStorage.removeItem('complaintease_attachments');
         localStorage.removeItem('complaintease_notifications');
         localStorage.removeItem('complaintease_audit_logs');
+        localStorage.removeItem('complaintease_users');
+        localStorage.removeItem('complaintease_demo_user');
         localStorage.setItem(CLEAN_FLAG, 'true');
       }
     } catch (e) {
@@ -266,8 +203,8 @@ class MockStore {
     const normEmail = data.email.toLowerCase().trim();
 
     // Prevent anyone from registering or overtaking the single administrator account
-    if (normEmail === 'admin@demo.com' || normEmail === 'admin@plant.com') {
-      throw new Error('This is a reserved administrative account. Please sign in directly using admin credentials.');
+    if (normEmail === 'sidd@gmail.com') {
+      throw new Error('This is the reserved administrative account. Please sign in directly using admin credentials.');
     }
 
     if (this.users[normEmail]) {
@@ -356,7 +293,7 @@ class MockStore {
     if (!target) throw new Error('User not found');
 
     // Protect primary root admin from accidental demotion
-    if (target.user.email === 'admin@demo.com' && data.role !== 'admin') {
+    if (target.user.email === 'sidd@gmail.com' && data.role !== 'admin') {
       throw new Error('Cannot demote the primary Plant Operations Director account.');
     }
 
@@ -503,7 +440,7 @@ class MockStore {
   }
 
   createComplaint(data: CreateComplaintInput, currentProfile?: Profile): any {
-    const creator = currentProfile || this.getCurrentProfile() || this.users['employee@demo.com']?.profile;
+    const creator = currentProfile || this.getCurrentProfile() || Object.values(this.users)[0]?.profile;
     const creatorId = creator?.id || crypto.randomUUID();
 
     const newComp = {

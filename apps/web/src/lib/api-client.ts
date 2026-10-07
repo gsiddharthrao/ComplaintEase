@@ -65,9 +65,9 @@ export const api = {
       try {
         return await fetchWithAuth<{ id: string; email: string; profile: Profile }>('/auth/me');
       } catch (err) {
-        const fallback = mockStore.getCurrentProfile() || mockStore.getUserByEmail('employee@demo.com')?.profile;
+        const fallback = mockStore.getCurrentProfile() || mockStore.getUserByEmail('sidd@gmail.com')?.profile;
         if (fallback) {
-          return { id: fallback.id, email: 'employee@demo.com', profile: fallback };
+          return { id: fallback.id, email: 'sidd@gmail.com', profile: fallback };
         }
         throw err;
       }

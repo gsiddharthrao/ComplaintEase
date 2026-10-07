@@ -48,10 +48,11 @@ export const AdminPanel: React.FC = () => {
   const [catDesc, setCatDesc] = useState('');
   const [catDeptId, setCatDeptId] = useState('');
 
-  // 0. Live complaints query
+  // 0. Live complaints query with 3s realtime polling
   const { data: complaintsData, isLoading: complaintsLoading } = useQuery({
     queryKey: ['admin-complaints-feed'],
     queryFn: () => api.complaints.list({ limit: 100 }),
+    refetchInterval: 3000,
   });
   const allComplaints = complaintsData?.data || [];
 
@@ -699,9 +700,9 @@ export const AdminPanel: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h4 className="text-sm font-bold text-slate-900">{u.full_name}</h4>
-                        {u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' && (
+                        {(u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' || u.role === 'admin') && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                            Primary Superadmin
+                            Primary Superadmin (sidd@gmail.com)
                           </span>
                         )}
                       </div>
@@ -711,7 +712,7 @@ export const AdminPanel: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       <select
                         value={u.role}
-                        disabled={u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc'}
+                        disabled={u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' || u.role === 'admin'}
                         onChange={(e) =>
                           updateUserRoleMutation.mutate({
                             id: u.id,
@@ -720,7 +721,7 @@ export const AdminPanel: React.FC = () => {
                           })
                         }
                         className={`px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold bg-white outline-none ${
-                          u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' ? 'opacity-60 cursor-not-allowed bg-slate-100' : ''
+                          u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' || u.role === 'admin' ? 'opacity-60 cursor-not-allowed bg-slate-100' : ''
                         }`}
                       >
                         <option value="employee">Employee</option>

@@ -32,11 +32,11 @@ authRouter.post(
       const { email, password, full_name, department_id } = req.body;
 
       const normEmail = email.toLowerCase().trim();
-      if (normEmail === 'admin@demo.com' || normEmail === 'admin@plant.com') {
+      if (normEmail === 'sidd@gmail.com') {
         res.status(403).json({
           error: {
             code: 'FORBIDDEN',
-            message: 'This is a reserved administrative account. Please sign in instead.',
+            message: 'This is the reserved administrative account. Please sign in instead.',
             requestId: req.id,
           },
         });

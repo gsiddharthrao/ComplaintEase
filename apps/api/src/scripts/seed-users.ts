@@ -3,16 +3,9 @@ import { logger } from '../utils/logger.js';
 
 const DEMO_USERS = [
   {
-    email: 'employee@demo.com',
-    password: 'Demo1234!',
-    full_name: 'Alex Rivera (Plant Shift Operator)',
-    role: 'employee' as const,
-    department_id: null,
-  },
-  {
-    email: 'admin@demo.com',
-    password: 'Demo1234!',
-    full_name: 'Marcus Vance (Plant Operations Director)',
+    email: 'sidd@gmail.com',
+    password: 'Sidd1234',
+    full_name: 'Siddharth (Plant Operations Director)',
     role: 'admin' as const,
     department_id: null,
   },

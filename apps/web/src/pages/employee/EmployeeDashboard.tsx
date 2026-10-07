@@ -25,6 +25,7 @@ export const EmployeeDashboard: React.FC = () => {
         priority: priorityFilter || undefined,
         limit: 50,
       }),
+    refetchInterval: 3000,
   });
 
   const complaints = data?.data || [];

@@ -51,6 +51,7 @@ export const ComplaintDetail: React.FC = () => {
     queryKey: ['complaint', id],
     queryFn: () => api.complaints.get(id!),
     enabled: Boolean(id),
+    refetchInterval: 3000,
   });
 
   // Fetch users for assignment if admin
