@@ -69,3 +69,4 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({ history }) => {
 });
 
 Timeline.displayName = 'Timeline';
+

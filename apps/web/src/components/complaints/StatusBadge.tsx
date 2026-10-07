@@ -26,3 +26,4 @@ export const StatusBadge: React.FC<{ status: ComplaintStatus }> = React.memo(({ 
 });
 
 StatusBadge.displayName = 'StatusBadge';
+

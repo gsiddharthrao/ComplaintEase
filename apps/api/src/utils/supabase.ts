@@ -37,3 +37,4 @@ export function getAdminClient(): SupabaseClient {
   }
   return serviceClientInstance;
 }
+

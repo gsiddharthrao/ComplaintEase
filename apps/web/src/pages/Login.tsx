@@ -35,7 +35,13 @@ export const Login: React.FC = () => {
     setError(null);
     try {
       await login(demoEmail, 'Demo1234!');
-      navigate('/employee', { replace: true });
+      if (demoEmail.includes('depthead')) {
+        navigate('/dept-head', { replace: true });
+      } else if (demoEmail.includes('admin')) {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/employee', { replace: true });
+      }
     } catch (err: any) {
       setError(err.message || 'Demo login failed');
     } finally {
@@ -146,3 +152,4 @@ export const Login: React.FC = () => {
     </div>
   );
 };
+

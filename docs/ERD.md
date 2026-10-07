@@ -168,3 +168,4 @@ Indexes were not created randomly; each serves an exact application query patter
 | `idx_notifications_user_unread` | `notifications (user_id, created_at DESC) WHERE is_read = false` | **Navbar Badge Query:** Partial index serves unread alerts in sub-millisecond time. |
 | `idx_audit_logs_table_row` | `audit_logs (table_name, row_id, created_at DESC)` | **Incident Forensic Query:** Fetches the complete mutation history of any specific entity. |
 | `idx_audit_logs_actor_created` | `audit_logs (actor, created_at DESC)` | **User Action Audit:** Inspects recent administrative operations performed by a given user. |
+

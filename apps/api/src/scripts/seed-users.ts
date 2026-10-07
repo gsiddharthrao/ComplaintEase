@@ -115,3 +115,4 @@ seed()
     logger.error({ err }, 'Seed script failed');
     process.exit(1);
   });
+

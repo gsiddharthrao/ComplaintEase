@@ -59,3 +59,4 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_table_row
 -- Query: Admin tracking recent actions performed by a specific user.
 CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_created
   ON audit_logs (actor, created_at DESC);
+

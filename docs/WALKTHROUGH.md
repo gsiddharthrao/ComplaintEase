@@ -122,3 +122,4 @@ flowchart LR
 
 ### `src/components/common/VirtualList.tsx`
 - Custom virtualized windowing component that renders only visible list items, ensuring smooth scrolling over large datasets.
+

@@ -224,3 +224,4 @@ This comprehensive guide is prepared specifically for CSE students defending thi
 > **Answer:**
 > 1. **GraphQL / tRPC:** Instead of custom REST endpoints, tRPC would provide end-to-end type safety between backend and frontend without manual fetch clients.
 > 2. **Outbox Pattern for Notifications:** Instead of creating notifications directly inside triggers, write events to a transactional Outbox table and use background workers (e.g. BullMQ / Temporal) to handle notifications, WebSockets, and external email delivery.
+

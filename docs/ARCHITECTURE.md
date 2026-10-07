@@ -111,3 +111,4 @@ When a complaint status changes or an assignment is created:
 2. The trigger `trg_notify_status_change` automatically inserts an in-app notification for the author.
 3. PostgreSQL Logical Replication streams the CDC (Change Data Capture) event through the `supabase_realtime` publication.
 4. The client's active WebSocket connection receives the broadcast and calls `queryClient.invalidateQueries()`, triggering immediate optimistic cache updates without full page refreshes.
+

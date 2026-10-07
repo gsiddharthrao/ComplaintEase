@@ -35,3 +35,4 @@ describe('API Endpoints & Middleware Integration Tests', () => {
     expect(res.body.error).toHaveProperty('requestId');
   });
 });
+

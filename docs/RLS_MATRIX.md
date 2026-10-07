@@ -58,3 +58,4 @@ All policies utilize the `SECURITY DEFINER` helper functions `current_user_role(
 1. **Deny by Default:** Every table executes `ALTER TABLE <name> ENABLE ROW LEVEL SECURITY;`. If no policy matches an operation, PostgreSQL rejects the query immediately.
 2. **Security Definer Function Bypass:** In policies where subqueries check `profiles`, calling `current_user_role()` prevents recursive policy execution loops.
 3. **Immutability Protection:** The `audit_logs` and `status_history` tables have no UPDATE or DELETE policies for application users; trigger `trg_protect_audit_logs` raises an explicit exception `55000` even if someone attempts a direct SQL mutation.
+

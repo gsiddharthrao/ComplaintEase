@@ -66,3 +66,4 @@ authRouter.post(
     }
   },
 );
+

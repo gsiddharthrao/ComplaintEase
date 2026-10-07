@@ -148,3 +148,4 @@ dist/assets/index-6MVqGh-O.js           454.83 kB │ gzip: 130.56 kB
 2. **Predictive Composite Indexes:** Avoided runtime sorting by designing indexes whose column ordering matches query filters and `ORDER BY created_at DESC`.
 3. **Route-Based Code Splitting:** Employs `React.lazy()` so browser clients only load the JavaScript chunks for the specific page being viewed.
 4. **Windowed Virtual Scrolling:** Avoids rendering thousands of DOM nodes during high-volume complaint searches using `VirtualList`.
+

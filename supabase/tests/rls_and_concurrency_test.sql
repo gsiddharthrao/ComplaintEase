@@ -171,3 +171,4 @@ BEGIN
 END $$;
 
 ROLLBACK; -- Always rollback test transaction so DB remains clean
+

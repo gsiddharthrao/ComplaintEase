@@ -42,3 +42,4 @@ FROM complaints c
 WHERE (c.title || ' ' || c.description) ILIKE '%outage%'
 ORDER BY c.created_at DESC
 LIMIT 20;
+

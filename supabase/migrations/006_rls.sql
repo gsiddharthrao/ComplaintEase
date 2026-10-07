@@ -338,3 +338,4 @@ CREATE POLICY "allowed_transitions_admin_all"
   TO authenticated
   USING (current_user_role() = 'admin')
   WITH CHECK (current_user_role() = 'admin');
+

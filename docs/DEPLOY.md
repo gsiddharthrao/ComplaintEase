@@ -89,3 +89,4 @@ Follow these steps to deploy ComplaintEase live to **Supabase**, **Render**, and
    - Dept Head: `depthead@demo.com` / `Demo1234!`
    - Admin: `admin@demo.com` / `Demo1234!`
 3. Verify that creating a complaint works, status transitions function properly, and real-time updates broadcast over WebSockets.
+

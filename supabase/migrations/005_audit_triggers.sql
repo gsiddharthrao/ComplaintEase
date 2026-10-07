@@ -121,3 +121,4 @@ DROP TRIGGER IF EXISTS trg_touch_comments_updated ON comments;
 CREATE TRIGGER trg_touch_comments_updated
   BEFORE UPDATE ON comments
   FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
+

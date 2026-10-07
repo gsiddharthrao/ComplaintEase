@@ -167,3 +167,4 @@ CREATE TRIGGER trg_notify_comment
   AFTER INSERT ON comments
   FOR EACH ROW
   EXECUTE FUNCTION notify_new_comment();
+

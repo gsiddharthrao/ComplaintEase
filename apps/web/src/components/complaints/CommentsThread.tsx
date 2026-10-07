@@ -156,3 +156,4 @@ export const CommentsThread: React.FC<CommentsThreadProps> = ({ complaintId }) =
     </div>
   );
 };
+

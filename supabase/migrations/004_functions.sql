@@ -222,3 +222,4 @@ $$;
 
 GRANT EXECUTE ON FUNCTION transition_complaint(UUID, complaint_status, TEXT, INTEGER)
   TO authenticated;
+

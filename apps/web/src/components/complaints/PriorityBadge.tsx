@@ -21,3 +21,4 @@ export const PriorityBadge: React.FC<{ priority: ComplaintPriority }> = React.me
 });
 
 PriorityBadge.displayName = 'PriorityBadge';
+

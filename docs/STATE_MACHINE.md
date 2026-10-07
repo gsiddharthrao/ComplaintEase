@@ -85,3 +85,4 @@ END IF;
 2. The **`p_expected_version`** parameter verifies that the row hasn't changed since the client fetched it.
 3. If versions do not match, the transaction rolls back immediately with SQLSTATE `P0003`, and the API returns HTTP `409 Conflict`.
 4. If versions match, the row is updated, `version = version + 1` is applied, and `status_history` is appended atomically.
+

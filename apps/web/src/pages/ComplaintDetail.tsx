@@ -387,3 +387,4 @@ export const ComplaintDetail: React.FC = () => {
     </div>
   );
 };
+

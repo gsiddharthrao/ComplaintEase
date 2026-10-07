@@ -101,3 +101,4 @@ BEGIN
   RAISE NOTICE 'Successfully generated % test complaints.', p_count;
 END;
 $$;
+

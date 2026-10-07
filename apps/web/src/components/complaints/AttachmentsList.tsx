@@ -146,3 +146,4 @@ export const AttachmentsList: React.FC<AttachmentsListProps> = ({ complaintId })
     </div>
   );
 };
+

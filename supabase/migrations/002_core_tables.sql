@@ -131,3 +131,4 @@ CREATE TABLE IF NOT EXISTS notifications (
   is_read       BOOLEAN NOT NULL DEFAULT false,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+

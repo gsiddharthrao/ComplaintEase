@@ -67,3 +67,4 @@ This document captures every major engineering trade-off, architectural choice, 
 - **Trade-offs & Rationale:**
   - *Pros:* Keeps the active DOM node count under 50 elements regardless of dataset size, eliminating mobile browser scroll lag and maintaining 60 FPS interactions.
   - *Cons:* Requires a fixed item height calculation for accurate virtual scrollbar sizing.
+
