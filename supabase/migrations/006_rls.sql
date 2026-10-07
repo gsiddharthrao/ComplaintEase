@@ -67,14 +67,6 @@ CREATE POLICY "complaints_select_employee"
     AND created_by = auth.uid()
   );
 
-CREATE POLICY "complaints_select_dept_head"
-  ON complaints FOR SELECT
-  TO authenticated
-  USING (
-    current_user_role() = 'dept_head'
-    AND department_id = current_user_dept()
-  );
-
 CREATE POLICY "complaints_select_admin"
   ON complaints FOR SELECT
   TO authenticated
@@ -105,54 +97,23 @@ CREATE POLICY "assignments_select_employee"
     )
   );
 
-CREATE POLICY "assignments_select_dept_head"
-  ON assignments FOR SELECT
-  TO authenticated
-  USING (
-    current_user_role() = 'dept_head'
-    AND EXISTS (
-      SELECT 1 FROM complaints c
-      WHERE c.id = complaint_id AND c.department_id = current_user_dept()
-    )
-  );
-
 CREATE POLICY "assignments_select_admin"
   ON assignments FOR SELECT
   TO authenticated
   USING (current_user_role() = 'admin');
 
-CREATE POLICY "assignments_insert_dept_head"
+CREATE POLICY "assignments_insert_admin"
   ON assignments FOR INSERT
   TO authenticated
   WITH CHECK (
-    (
-      current_user_role() = 'dept_head'
-      AND EXISTS (
-        SELECT 1 FROM complaints c
-        WHERE c.id = complaint_id AND c.department_id = current_user_dept()
-      )
-      AND assigned_by = auth.uid()
-    )
-    OR
-    (
-      current_user_role() = 'admin'
-      AND assigned_by = auth.uid()
-    )
+    current_user_role() = 'admin'
+    AND assigned_by = auth.uid()
   );
 
-CREATE POLICY "assignments_update_dept_head"
+CREATE POLICY "assignments_update_admin"
   ON assignments FOR UPDATE
   TO authenticated
-  USING (
-    (
-      current_user_role() = 'dept_head'
-      AND EXISTS (
-        SELECT 1 FROM complaints c
-        WHERE c.id = complaint_id AND c.department_id = current_user_dept()
-      )
-    )
-    OR current_user_role() = 'admin'
-  );
+  USING (current_user_role() = 'admin');
 
 -- 6. comments
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
@@ -166,17 +127,6 @@ CREATE POLICY "comments_select_employee"
     AND EXISTS (
       SELECT 1 FROM complaints c
       WHERE c.id = complaint_id AND c.created_by = auth.uid()
-    )
-  );
-
-CREATE POLICY "comments_select_dept_head"
-  ON comments FOR SELECT
-  TO authenticated
-  USING (
-    current_user_role() = 'dept_head'
-    AND EXISTS (
-      SELECT 1 FROM complaints c
-      WHERE c.id = complaint_id AND c.department_id = current_user_dept()
     )
   );
 
@@ -195,18 +145,6 @@ CREATE POLICY "comments_insert_employee"
     AND EXISTS (
       SELECT 1 FROM complaints c
       WHERE c.id = complaint_id AND c.created_by = auth.uid()
-    )
-  );
-
-CREATE POLICY "comments_insert_dept_head"
-  ON comments FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    current_user_role() = 'dept_head'
-    AND author_id = auth.uid()
-    AND EXISTS (
-      SELECT 1 FROM complaints c
-      WHERE c.id = complaint_id AND c.department_id = current_user_dept()
     )
   );
 
@@ -243,17 +181,6 @@ CREATE POLICY "attachments_select_employee"
     )
   );
 
-CREATE POLICY "attachments_select_dept_head"
-  ON attachments FOR SELECT
-  TO authenticated
-  USING (
-    current_user_role() = 'dept_head'
-    AND EXISTS (
-      SELECT 1 FROM complaints c
-      WHERE c.id = complaint_id AND c.department_id = current_user_dept()
-    )
-  );
-
 CREATE POLICY "attachments_select_admin"
   ON attachments FOR SELECT
   TO authenticated
@@ -266,8 +193,6 @@ CREATE POLICY "attachments_insert_authenticated"
     uploaded_by = auth.uid()
     AND (
       (current_user_role() = 'employee' AND EXISTS (SELECT 1 FROM complaints WHERE id = complaint_id AND created_by = auth.uid()))
-      OR
-      (current_user_role() = 'dept_head' AND EXISTS (SELECT 1 FROM complaints WHERE id = complaint_id AND department_id = current_user_dept()))
       OR
       (current_user_role() = 'admin')
     )
@@ -284,17 +209,6 @@ CREATE POLICY "status_history_select_employee"
     AND EXISTS (
       SELECT 1 FROM complaints c
       WHERE c.id = complaint_id AND c.created_by = auth.uid()
-    )
-  );
-
-CREATE POLICY "status_history_select_dept_head"
-  ON status_history FOR SELECT
-  TO authenticated
-  USING (
-    current_user_role() = 'dept_head'
-    AND EXISTS (
-      SELECT 1 FROM complaints c
-      WHERE c.id = complaint_id AND c.department_id = current_user_dept()
     )
   );
 

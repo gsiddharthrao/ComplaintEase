@@ -10,13 +10,6 @@ const DEMO_USERS = [
     department_id: null,
   },
   {
-    email: 'depthead@demo.com',
-    password: 'Demo1234!',
-    full_name: 'Sarah IT Head',
-    role: 'dept_head' as const,
-    department_id: '11111111-1111-1111-1111-111111111111', // IT Dept
-  },
-  {
     email: 'admin@demo.com',
     password: 'Demo1234!',
     full_name: 'Marcus Administrator',
@@ -88,22 +81,6 @@ async function seed() {
     } catch (err) {
       logger.error({ err }, `Error provisioning ${user.email}`);
     }
-  }
-
-  // Set IT Department Head FK
-  const { data: deptHeadUser } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('role', 'dept_head')
-    .limit(1)
-    .single();
-
-  if (deptHeadUser) {
-    await supabase
-      .from('departments')
-      .update({ head_id: deptHeadUser.id })
-      .eq('id', '11111111-1111-1111-1111-111111111111');
-    logger.info('Linked IT Department head_id.');
   }
 
   logger.info('✅ User seeding completed successfully.');

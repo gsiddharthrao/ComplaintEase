@@ -11,7 +11,7 @@ Status cannot be updated directly through SQL UPDATE statements; it must transit
 stateDiagram-v2
     [*] --> submitted : Initial Employee Submission
 
-    submitted --> under_review : Dept Head / Admin Review
+    submitted --> under_review : Admin Review
     submitted --> rejected : Reject (Invalid / Duplicate)
 
     under_review --> assigned : Assign Specialist
@@ -23,7 +23,7 @@ stateDiagram-v2
     in_progress --> resolved : Incident Mitigated / Fixed
     in_progress --> rejected : Reject (Unfixable / Invalid)
 
-    resolved --> closed : Admin / Dept Head Closes
+    resolved --> closed : Admin Closes
     resolved --> reopened : Employee unsatisfied with resolution
 
     reopened --> in_progress : Specialist Resumes Work
@@ -39,18 +39,18 @@ stateDiagram-v2
 
 | Current Status (`from_status`) | Allowed Next Status (`to_status`) | Permitted Roles | Business Rationale |
 |---|---|---|---|
-| `submitted` | `under_review` | `dept_head`, `admin` | Department manager begins initial triage. |
-| `submitted` | `rejected` | `dept_head`, `admin` | Immediate rejection for spam, duplicate, or irrelevant filings. |
-| `under_review` | `assigned` | `dept_head`, `admin` | Manager routes incident to a designated specialist. |
-| `under_review` | `rejected` | `dept_head`, `admin` | Rejected after preliminary department evaluation. |
-| `assigned` | `in_progress` | `dept_head`, `admin` | Assigned engineer or specialist starts active investigation. |
-| `assigned` | `rejected` | `dept_head`, `admin` | Specialist verifies ticket is out of scope or invalid. |
-| `in_progress` | `resolved` | `dept_head`, `admin` | Remediation completed; sets `resolved_at = now()`. |
-| `in_progress` | `rejected` | `dept_head`, `admin` | Unresolvable constraint or policy violation identified. |
-| `resolved` | `closed` | `dept_head`, `admin` | Archival closure after satisfactory grace period. |
+| `submitted` | `under_review` | `admin` | Admin begins initial triage. |
+| `submitted` | `rejected` | `admin` | Immediate rejection for spam, duplicate, or irrelevant filings. |
+| `under_review` | `assigned` | `admin` | Admin routes incident to a designated specialist. |
+| `under_review` | `rejected` | `admin` | Rejected after preliminary evaluation. |
+| `assigned` | `in_progress` | `admin` | Assigned engineer or specialist starts active investigation. |
+| `assigned` | `rejected` | `admin` | Specialist verifies ticket is out of scope or invalid. |
+| `in_progress` | `resolved` | `admin` | Remediation completed; sets `resolved_at = now()`. |
+| `in_progress` | `rejected` | `admin` | Unresolvable constraint or policy violation identified. |
+| `resolved` | `closed` | `admin` | Archival closure after satisfactory grace period. |
 | `resolved` | `reopened` | **`employee`**, `admin` | **Employee empowerment:** Creator can reopen within SLA if issue persists. Clears `resolved_at`. |
-| `reopened` | `in_progress` | `dept_head`, `admin` | Specialist resumes remediation work. |
-| `reopened` | `rejected` | `dept_head`, `admin` | Issue confirmed resolved or rejected upon re-examination. |
+| `reopened` | `in_progress` | `admin` | Specialist resumes remediation work. |
+| `reopened` | `rejected` | `admin` | Issue confirmed resolved or rejected upon re-examination. |
 | `closed` | *(none)* | *(none)* | **Terminal State:** No further state transitions allowed. |
 | `rejected` | *(none)* | *(none)* | **Terminal State:** Permanently archived as rejected. |
 
@@ -59,7 +59,7 @@ stateDiagram-v2
 ## 3. Concurrency & Optimistic Locking (`version` Column)
 
 ### The Lost-Update Problem in Distributed Systems
-Imagine two department heads viewing the same complaint at `version = 3`:
+Imagine two administrators viewing the same complaint at `version = 3`:
 1. **User A** decides to transition status to `in_progress`.
 2. Simultaneously, **User B** decides to `reject` the complaint.
 3. Without concurrency control, User B's change could silently overwrite User A's work without User B ever realizing the status was progressed.

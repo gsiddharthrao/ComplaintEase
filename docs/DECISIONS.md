@@ -68,3 +68,14 @@ This document captures every major engineering trade-off, architectural choice, 
   - *Pros:* Keeps the active DOM node count under 50 elements regardless of dataset size, eliminating mobile browser scroll lag and maintaining 60 FPS interactions.
   - *Cons:* Requires a fixed item height calculation for accurate virtual scrollbar sizing.
 
+---
+
+## ADR 7: Two-Role Security Model (`employee` & `admin`) vs. Multi-Tier Role Hierarchy
+
+- **Decision:** Streamlined system authorization to strictly two roles: `employee` (complaint creator) and `admin` (system-wide manager/operator).
+- **Alternatives Rejected:**
+  - *Three-Tier Model with `dept_head`:* Introducing intermediate departmental managers between regular staff and administrators.
+- **Trade-offs & Rationale:**
+  - *Pros:* Dramatically simplifies database RLS policy evaluation trees (eliminates nested department-boundary lookups per row) and prevents authorization deadlock when department heads transition between divisions. Administrators have centralized authority to assign specialists, triage tickets, and advance lifecycle transitions across all departments.
+  - *Cons:* In organizations with thousands of staff, admin oversight may need to be delegated to specific departmental groups in future iterations.
+

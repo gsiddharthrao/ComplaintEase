@@ -280,12 +280,12 @@ complaintsRouter.post(
 
 /**
  * POST /api/v1/complaints/:id/assign
- * Assigns a complaint to a staff member. Restricted to dept_head and admin.
+ * Assigns a complaint to a staff member. Restricted to admin.
  */
 complaintsRouter.post(
   '/complaints/:id/assign',
   requireAuth,
-  requireRole(['dept_head', 'admin']),
+  requireRole(['admin']),
   validateBody(assignSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -305,18 +305,6 @@ complaintsRouter.post(
           error: {
             code: 'NOT_FOUND',
             message: 'Complaint not found or inaccessible',
-            requestId: req.id,
-          },
-        });
-        return;
-      }
-
-      // Dept head can only assign within their department
-      if (req.profile!.role === 'dept_head' && complaint.department_id !== req.profile!.department_id) {
-        res.status(403).json({
-          error: {
-            code: 'FORBIDDEN',
-            message: 'Department heads can only assign complaints for their department',
             requestId: req.id,
           },
         });

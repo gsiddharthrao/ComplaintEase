@@ -39,7 +39,7 @@ erDiagram
     PROFILES {
         uuid id PK "Matches auth.users(id)"
         text full_name
-        user_role role "employee | dept_head | admin"
+        user_role role "employee | admin"
         uuid department_id FK
         text avatar_url
         timestamptz created_at

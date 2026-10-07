@@ -24,7 +24,7 @@ flowchart LR
 - **Key Concepts:**
   - `CREATE EXTENSION pgcrypto`: Provides `gen_random_uuid()` for generating collision-resistant primary keys.
   - `CREATE EXTENSION pg_trgm`: Enables trigram-based string similarity indexing.
-  - Custom Enums: `user_role` (`employee`, `dept_head`, `admin`), `complaint_status`, and `complaint_priority`.
+  - Custom Enums: `user_role` (`employee`, `admin`), `complaint_status`, and `complaint_priority`.
 
 ### `002_core_tables.sql`
 - **Purpose:** Normalized 3NF tables with strict relational integrity constraints.
@@ -60,9 +60,9 @@ flowchart LR
 ### `006_rls.sql`
 - **Purpose:** Row Level Security policies for all tables.
 - **Key Concepts:**
-  - Granular `SELECT`, `INSERT`, `UPDATE`, and `DELETE` policies for `employee`, `dept_head`, and `admin`.
+  - Granular `SELECT`, `INSERT`, `UPDATE`, and `DELETE` policies for `employee` and `admin`.
   - Hides internal comments from employees (`is_internal = false`).
-  - Restricts department heads to their assigned department (`department_id = current_dept()`).
+  - Restricts employees to their own complaints (`created_by = auth.uid()`), while granting admins global management capability.
 
 ---
 

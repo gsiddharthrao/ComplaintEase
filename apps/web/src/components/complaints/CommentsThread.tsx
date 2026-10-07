@@ -14,7 +14,7 @@ export const CommentsThread: React.FC<CommentsThreadProps> = ({ complaintId }) =
   const [body, setBody] = useState('');
   const [isInternal, setIsInternal] = useState(false);
 
-  const canPostInternal = profile?.role === 'dept_head' || profile?.role === 'admin';
+  const canPostInternal = profile?.role === 'admin';
 
   const { data: comments = [], isLoading } = useQuery({
     queryKey: ['comments', complaintId],

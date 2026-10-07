@@ -115,17 +115,16 @@ LIMIT 20;
 
 ### Production Build Distribution (Verified via Vite v5.4.21 Build)
 ```
-dist/index.html                           0.82 kB │ gzip:   0.47 kB
-dist/assets/index-D5hMobM0.css           27.43 kB │ gzip:   5.49 kB
-dist/assets/Login-DvtHD519.js             5.05 kB │ gzip:   1.86 kB
-dist/assets/Register-CFQ_Yvkr.js          4.08 kB │ gzip:   1.34 kB
-dist/assets/NewComplaint-DYW1kusv.js      5.03 kB │ gzip:   1.63 kB
-dist/assets/EmployeeDashboard-BQbvj6u7.js 6.21 kB │ gzip:   2.09 kB
-dist/assets/DeptHeadBoard-DBEGYHNU.js     5.38 kB │ gzip:   1.71 kB
-dist/assets/AdminPanel-Dx_iY2kV.js       11.89 kB │ gzip:   2.95 kB
-dist/assets/ComplaintDetail-D8qh_1S6.js  21.43 kB │ gzip:   5.60 kB
-dist/assets/index-BgukOVx_.js            55.26 kB │ gzip:  12.81 kB
-dist/assets/index-6MVqGh-O.js           454.83 kB │ gzip: 130.56 kB
+dist/index.html                              0.82 kB │ gzip:   0.47 kB
+dist/assets/index-ccHoSFhd.css              27.21 kB │ gzip:   5.46 kB
+dist/assets/Register-ZRg22QWX.js             3.99 kB │ gzip:   1.31 kB
+dist/assets/Login-CgYLDd8C.js                4.85 kB │ gzip:   1.84 kB
+dist/assets/NewComplaint-MQBSbpxa.js         4.99 kB │ gzip:   1.62 kB
+dist/assets/EmployeeDashboard-BIzqcpxr.js    6.70 kB │ gzip:   2.16 kB
+dist/assets/AdminPanel-D9CpFUCi.js          11.83 kB │ gzip:   2.94 kB
+dist/assets/ComplaintDetail-BcypoLLb.js     21.50 kB │ gzip:   5.59 kB
+dist/assets/zod-CgfoJqL3.js                 33.01 kB │ gzip:  12.02 kB
+dist/assets/index-CYMebWYO.js              529.12 kB │ gzip: 147.26 kB
 ```
 
 ### Lighthouse Audit Scores

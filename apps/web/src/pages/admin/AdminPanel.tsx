@@ -319,7 +319,6 @@ export const AdminPanel: React.FC = () => {
                         className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold bg-white outline-none"
                       >
                         <option value="employee">Employee</option>
-                        <option value="dept_head">Dept Head</option>
                         <option value="admin">System Admin</option>
                       </select>
 

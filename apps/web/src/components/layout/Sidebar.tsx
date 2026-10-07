@@ -24,18 +24,10 @@ export const Sidebar: React.FC = () => {
           { to: '/complaints/new', label: 'File Complaint', icon: PlusCircle },
         ]
       : []),
-    ...(role === 'dept_head'
-      ? [
-          { to: '/dept-head', label: 'Department Triage', icon: Kanban },
-          { to: '/employee', label: 'My Filed Complaints', icon: FileText },
-          { to: '/complaints/new', label: 'File Complaint', icon: PlusCircle },
-        ]
-      : []),
     ...(role === 'admin'
       ? [
           { to: '/admin', label: 'Admin Command', icon: Settings },
-          { to: '/dept-head', label: 'Department Board', icon: Kanban },
-          { to: '/employee', label: 'Complaints Directory', icon: FileText },
+          { to: '/employee', label: 'All Complaints', icon: FileText },
           { to: '/complaints/new', label: 'File Complaint', icon: PlusCircle },
         ]
       : []),

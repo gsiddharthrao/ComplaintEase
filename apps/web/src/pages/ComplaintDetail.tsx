@@ -46,11 +46,11 @@ export const ComplaintDetail: React.FC = () => {
     enabled: Boolean(id),
   });
 
-  // Fetch users for assignment if dept_head or admin
+  // Fetch users for assignment if admin
   const { data: users = [] } = useQuery({
     queryKey: ['admin-users'],
     queryFn: () => api.admin.getUsers(),
-    enabled: profile?.role === 'dept_head' || profile?.role === 'admin',
+    enabled: profile?.role === 'admin',
   });
 
   const transitionMutation = useMutation({
@@ -111,7 +111,6 @@ export const ComplaintDetail: React.FC = () => {
   // Filter transitions permitted for user role
   const allowedForRole = rawAllowed.filter((targetStatus) => {
     if (userRole === 'admin') return true;
-    if (userRole === 'dept_head') return true;
     if (userRole === 'employee') {
       // Employees can only reopen their own resolved complaints
       return targetStatus === 'reopened' && currentStatus === 'resolved' && complaint.created_by === profile?.id;
@@ -141,7 +140,7 @@ export const ComplaintDetail: React.FC = () => {
       {/* Back button & top meta */}
       <div className="flex items-center justify-between">
         <Link
-          to="/employee"
+          to={userRole === 'admin' ? '/admin' : '/employee'}
           className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -163,7 +162,7 @@ export const ComplaintDetail: React.FC = () => {
 
           {/* Quick Actions (Assign / Transition) */}
           <div className="flex items-center space-x-2">
-            {(userRole === 'dept_head' || userRole === 'admin') && (
+            {userRole === 'admin' && (
               <button
                 onClick={() => setShowAssignModal(true)}
                 className="inline-flex items-center space-x-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors"

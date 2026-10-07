@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createCommentSchema = z.object({
   body: z.string().min(1).max(2000),
-  /** Internal notes are only visible to dept_head and admin */
+  /** Internal notes are only visible to admin */
   is_internal: z.boolean().default(false),
 });
 

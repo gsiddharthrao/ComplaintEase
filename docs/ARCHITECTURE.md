@@ -99,7 +99,7 @@ ComplaintEase implements a multi-layer security perimeter:
    - **Per-Request User Client:** The API **never** passes user queries through the database `service_role` superuser key. Every database call inherits the user's personal JWT token.
 
 3. **Database Kernel Defense (RLS & Triggers):**
-   - **Row Level Security:** Even if an API developer writes `SELECT * FROM complaints` with no WHERE clause, PostgreSQL evaluates RLS policies and hides rows outside the caller's authorized department or ownership.
+   - **Row Level Security:** Even if an API developer writes `SELECT * FROM complaints` with no WHERE clause, PostgreSQL evaluates RLS policies and hides rows outside the employee's ownership (admins see all complaints).
    - **Tamper-Proof Triggers:** Direct SQL `UPDATE complaints SET status = ...` is trapped and aborted by a BEFORE UPDATE trigger. All transitions must invoke `transition_complaint()`.
 
 ---

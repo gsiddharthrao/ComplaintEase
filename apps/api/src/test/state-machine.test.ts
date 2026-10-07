@@ -32,7 +32,7 @@ describe('State Machine & Transition Rules', () => {
     expect(TRANSITION_PERMISSIONS['submitted']).not.toContain('employee');
   });
 
-  it('verifies dept_head and admin permissions across lifecycle', () => {
+  it('verifies admin permissions across lifecycle', () => {
     const statuses: ComplaintStatus[] = [
       'submitted',
       'under_review',
@@ -44,7 +44,6 @@ describe('State Machine & Transition Rules', () => {
 
     statuses.forEach((status) => {
       expect(TRANSITION_PERMISSIONS[status]).toContain('admin');
-      expect(TRANSITION_PERMISSIONS[status]).toContain('dept_head');
     });
   });
 });

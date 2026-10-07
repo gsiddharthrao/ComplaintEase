@@ -17,7 +17,7 @@ BEGIN
   v_meta_role := NEW.raw_user_meta_data->>'role';
   v_meta_dept := NEW.raw_user_meta_data->>'department_id';
 
-  IF v_meta_role IN ('employee', 'dept_head', 'admin') THEN
+  IF v_meta_role IN ('employee', 'admin') THEN
     v_role := v_meta_role::user_role;
   END IF;
 

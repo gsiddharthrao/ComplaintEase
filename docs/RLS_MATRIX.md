@@ -8,48 +8,48 @@ All policies utilize the `SECURITY DEFINER` helper functions `current_user_role(
 
 ## Complete Role × Table × Operation Matrix
 
-| Table | Operation | Role: `employee` | Role: `dept_head` | Role: `admin` |
-|---|---|---|---|---|
-| **`departments`** | **SELECT** | Allowed (All) | Allowed (All) | Allowed (All) |
-| | **INSERT** | Forbidden | Forbidden | Allowed |
-| | **UPDATE** | Forbidden | Forbidden | Allowed |
-| | **DELETE** | Forbidden | Forbidden | Allowed (RESTRICT if referenced) |
-| **`profiles`** | **SELECT** | Allowed (All, for name lookups) | Allowed (All) | Allowed (All) |
-| | **INSERT** | Trigger Only (`auth.users`) | Trigger Only (`auth.users`) | Trigger / Admin API |
-| | **UPDATE** | Own profile only (`id = auth.uid()`) | Own profile only | Allowed (All profiles) |
-| | **DELETE** | Forbidden | Forbidden | Allowed (CASCADE via auth) |
-| **`categories`** | **SELECT** | Allowed (All) | Allowed (All) | Allowed (All) |
-| | **INSERT** | Forbidden | Forbidden | Allowed |
-| | **UPDATE** | Forbidden | Forbidden | Allowed |
-| | **DELETE** | Forbidden | Forbidden | Allowed |
-| **`complaints`** | **SELECT** | Own complaints only (`created_by = auth.uid()`) | Department complaints (`department_id = current_dept()`) | Allowed (All complaints) |
-| | **INSERT** | Allowed (`created_by = auth.uid()`) | Allowed (`created_by = auth.uid()`) | Allowed (`created_by = auth.uid()`) |
-| | **UPDATE** | Forbidden (Status via `transition_complaint()`) | Forbidden (Status via `transition_complaint()`) | Allowed (Non-status attributes) |
-| | **DELETE** | **Forbidden** (Data retention policy) | **Forbidden** | **Forbidden** |
-| **`assignments`** | **SELECT** | Assignments on own complaints | Assignments on department complaints | Allowed (All) |
-| | **INSERT** | Forbidden | Allowed (Department complaints) | Allowed (All) |
-| | **UPDATE** | Forbidden | Allowed (Department complaints) | Allowed (All) |
-| | **DELETE** | Forbidden | Forbidden | Allowed |
-| **`comments`** | **SELECT** | Own complaints, **non-internal only** (`is_internal = false`) | All comments on department complaints | Allowed (All comments) |
-| | **INSERT** | On own complaints (`is_internal = false`) | On department complaints (Internal allowed) | On any complaint (Internal allowed) |
-| | **UPDATE** | Own comments only | Own comments only | Own comments only |
-| | **DELETE** | Own comments only | Own comments only | Allowed (All comments) |
-| **`attachments`** | **SELECT** | Attachments on own complaints | Attachments on department complaints | Allowed (All) |
-| | **INSERT** | Allowed on own complaints | Allowed on department complaints | Allowed (All) |
-| | **UPDATE** | Forbidden | Forbidden | Forbidden |
-| | **DELETE** | Own attachments only | Own attachments only | Allowed (All) |
-| **`status_history`** | **SELECT** | History on own complaints | History on department complaints | Allowed (All) |
-| | **INSERT** | Function Only (`transition_complaint`) | Function Only (`transition_complaint`) | Function Only (`transition_complaint`) |
-| | **UPDATE** | **Forbidden** (Append-only) | **Forbidden** | **Forbidden** |
-| | **DELETE** | **Forbidden** | **Forbidden** | **Forbidden** |
-| **`audit_logs`** | **SELECT** | Forbidden | Forbidden | Allowed (Read-only forensic audit) |
-| | **INSERT** | Trigger Only (`process_audit_log`) | Trigger Only | Trigger Only |
-| | **UPDATE** | **Forbidden** (Append-only Trigger P0006) | **Forbidden** | **Forbidden** |
-| | **DELETE** | **Forbidden** | **Forbidden** | **Forbidden** |
-| **`notifications`** | **SELECT** | Own notifications (`user_id = auth.uid()`) | Own notifications (`user_id = auth.uid()`) | Own notifications (`user_id = auth.uid()`) |
-| | **INSERT** | Function / Trigger Only | Function / Trigger Only | Function / Trigger Only |
-| | **UPDATE** | Own notifications (mark read) | Own notifications (mark read) | Own notifications (mark read) |
-| | **DELETE** | Forbidden | Forbidden | Forbidden |
+| Table | Operation | Role: `employee` | Role: `admin` |
+|---|---|---|---|
+| **`departments`** | **SELECT** | Allowed (All) | Allowed (All) |
+| | **INSERT** | Forbidden | Allowed |
+| | **UPDATE** | Forbidden | Allowed |
+| | **DELETE** | Forbidden | Allowed (RESTRICT if referenced) |
+| **`profiles`** | **SELECT** | Allowed (All, for name lookups) | Allowed (All) |
+| | **INSERT** | Trigger Only (`auth.users`) | Trigger / Admin API |
+| | **UPDATE** | Own profile only (`id = auth.uid()`) | Allowed (All profiles) |
+| | **DELETE** | Forbidden | Allowed (CASCADE via auth) |
+| **`categories`** | **SELECT** | Allowed (All) | Allowed (All) |
+| | **INSERT** | Forbidden | Allowed |
+| | **UPDATE** | Forbidden | Allowed |
+| | **DELETE** | Forbidden | Allowed |
+| **`complaints`** | **SELECT** | Own complaints only (`created_by = auth.uid()`) | Allowed (All complaints) |
+| | **INSERT** | Allowed (`created_by = auth.uid()`) | Allowed (`created_by = auth.uid()`) |
+| | **UPDATE** | Forbidden (Status via `transition_complaint()`) | Allowed (Non-status attributes) |
+| | **DELETE** | **Forbidden** (Data retention policy) | **Forbidden** |
+| **`assignments`** | **SELECT** | Assignments on own complaints | Allowed (All) |
+| | **INSERT** | Forbidden | Allowed (All) |
+| | **UPDATE** | Forbidden | Allowed (All) |
+| | **DELETE** | Forbidden | Allowed |
+| **`comments`** | **SELECT** | Own complaints, **non-internal only** (`is_internal = false`) | Allowed (All comments, including internal) |
+| | **INSERT** | On own complaints (`is_internal = false`) | On any complaint (Internal allowed) |
+| | **UPDATE** | Own comments only | Own comments only |
+| | **DELETE** | Own comments only | Allowed (All comments) |
+| **`attachments`** | **SELECT** | Attachments on own complaints | Allowed (All) |
+| | **INSERT** | Allowed on own complaints | Allowed (All) |
+| | **UPDATE** | Forbidden | Forbidden |
+| | **DELETE** | Own attachments only | Allowed (All) |
+| **`status_history`** | **SELECT** | History on own complaints | Allowed (All) |
+| | **INSERT** | Function Only (`transition_complaint`) | Function Only (`transition_complaint`) |
+| | **UPDATE** | **Forbidden** (Append-only) | **Forbidden** |
+| | **DELETE** | **Forbidden** | **Forbidden** |
+| **`audit_logs`** | **SELECT** | Forbidden | Allowed (Read-only forensic audit) |
+| | **INSERT** | Trigger Only (`process_audit_log`) | Trigger Only |
+| | **UPDATE** | **Forbidden** (Append-only Trigger P0006) | **Forbidden** |
+| | **DELETE** | **Forbidden** | **Forbidden** |
+| **`notifications`** | **SELECT** | Own notifications (`user_id = auth.uid()`) | Own notifications (`user_id = auth.uid()`) |
+| | **INSERT** | Function / Trigger Only | Function / Trigger Only |
+| | **UPDATE** | Own notifications (mark read) | Own notifications (mark read) |
+| | **DELETE** | Forbidden | Forbidden |
 
 ---
 

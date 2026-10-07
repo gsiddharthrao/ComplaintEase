@@ -79,12 +79,12 @@ This comprehensive guide is prepared specifically for CSE students defending thi
 > ```
 > PostgreSQL appends this filter to the execution plan before scanning rows.
 
-### 15. How do department heads access only their department's complaints?
-> **Answer:** The policy `complaints_select_dept_head` checks:
+### 15. How does the system restrict complaint visibility between employees and administrators?
+> **Answer:** The policy `complaints_select_employee` checks:
 > ```sql
-> current_user_role() = 'dept_head' AND department_id = current_user_dept()
+> current_user_role() = 'employee' AND created_by = auth.uid()
 > ```
-> Even if a department head sends a query for a different department ID, PostgreSQL filters it out and returns zero rows.
+> This ensures regular employees can never view tickets filed by colleagues. Administrators access complaints through `complaints_select_admin` (`current_user_role() = 'admin'`), giving global oversight while database RLS strictly isolates employee records.
 
 ### 16. How do internal staff comments stay hidden from employees?
 > **Answer:** On the `comments` table, `comments_select_employee` includes:

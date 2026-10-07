@@ -5,7 +5,7 @@
  */
 
 /** User roles — maps to user_role Postgres enum */
-export type UserRole = 'employee' | 'dept_head' | 'admin';
+export type UserRole = 'employee' | 'admin';
 
 /** Complaint lifecycle status — maps to complaint_status Postgres enum */
 export type ComplaintStatus =
@@ -35,12 +35,12 @@ export const ALLOWED_TRANSITIONS: Record<ComplaintStatus, ComplaintStatus[]> = {
 
 /** Which roles may trigger each transition */
 export const TRANSITION_PERMISSIONS: Record<ComplaintStatus, UserRole[]> = {
-  submitted: ['dept_head', 'admin'],
-  under_review: ['dept_head', 'admin'],
-  assigned: ['dept_head', 'admin'],
-  in_progress: ['dept_head', 'admin'],
-  resolved: ['dept_head', 'admin', 'employee'], // employee can reopen or admin/dept_head can close
+  submitted: ['admin'],
+  under_review: ['admin'],
+  assigned: ['admin'],
+  in_progress: ['admin'],
+  resolved: ['admin', 'employee'], // employee can reopen or admin can close
   closed: [],
   rejected: [],
-  reopened: ['dept_head', 'admin'],
+  reopened: ['admin'],
 };

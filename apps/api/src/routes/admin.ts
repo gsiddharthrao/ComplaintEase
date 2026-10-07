@@ -21,7 +21,7 @@ const categorySchema = z.object({
 });
 
 const updateUserRoleSchema = z.object({
-  role: z.enum(['employee', 'dept_head', 'admin']),
+  role: z.enum(['employee', 'admin']),
   department_id: z.string().uuid().optional().nullable(),
 });
 

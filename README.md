@@ -44,7 +44,6 @@ Open http://localhost:5173 for the frontend, http://localhost:3000/health for th
 | Role | Email | Password |
 |------|-------|----------|
 | Employee | employee@demo.com | Demo1234! |
-| Dept Head | depthead@demo.com | Demo1234! |
 | Admin | admin@demo.com | Demo1234! |
 
 ## Monorepo Structure

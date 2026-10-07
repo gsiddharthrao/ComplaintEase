@@ -35,9 +35,7 @@ export const Login: React.FC = () => {
     setError(null);
     try {
       await login(demoEmail, 'Demo1234!');
-      if (demoEmail.includes('depthead')) {
-        navigate('/dept-head', { replace: true });
-      } else if (demoEmail.includes('admin')) {
+      if (demoEmail.includes('admin')) {
         navigate('/admin', { replace: true });
       } else {
         navigate('/employee', { replace: true });
@@ -116,25 +114,18 @@ export const Login: React.FC = () => {
               <KeyRound className="w-3.5 h-3.5" />
               1-Click Demo Login
             </p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => handleDemoLogin('employee@demo.com')}
-                className="py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-medium text-center transition-colors"
+                className="py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold text-center transition-colors"
               >
                 Employee
               </button>
               <button
                 type="button"
-                onClick={() => handleDemoLogin('depthead@demo.com')}
-                className="py-1.5 px-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-medium text-center transition-colors"
-              >
-                Dept Head
-              </button>
-              <button
-                type="button"
                 onClick={() => handleDemoLogin('admin@demo.com')}
-                className="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-medium text-center transition-colors"
+                className="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold text-center transition-colors"
               >
                 Admin
               </button>

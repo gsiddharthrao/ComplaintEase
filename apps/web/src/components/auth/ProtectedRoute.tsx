@@ -31,7 +31,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     // Redirect to their appropriate home dashboard based on role
     const homeMap: Record<UserRole, string> = {
       employee: '/employee',
-      dept_head: '/dept-head',
       admin: '/admin',
     };
     return <Navigate to={homeMap[profile.role]} replace />;

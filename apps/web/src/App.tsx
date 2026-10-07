@@ -17,9 +17,6 @@ const NewComplaint = lazy(() =>
 const ComplaintDetail = lazy(() =>
   import('./pages/ComplaintDetail.js').then((m) => ({ default: m.ComplaintDetail })),
 );
-const DeptHeadBoard = lazy(() =>
-  import('./pages/dept/DeptHeadBoard.js').then((m) => ({ default: m.DeptHeadBoard })),
-);
 const AdminPanel = lazy(() =>
   import('./pages/admin/AdminPanel.js').then((m) => ({ default: m.AdminPanel })),
 );
@@ -65,7 +62,7 @@ export function App() {
                 <Route
                   path="/employee"
                   element={
-                    <ProtectedRoute allowedRoles={['employee', 'dept_head', 'admin']}>
+                    <ProtectedRoute allowedRoles={['employee', 'admin']}>
                       <EmployeeDashboard />
                     </ProtectedRoute>
                   }
@@ -73,7 +70,7 @@ export function App() {
                 <Route
                   path="/complaints/new"
                   element={
-                    <ProtectedRoute allowedRoles={['employee', 'dept_head', 'admin']}>
+                    <ProtectedRoute allowedRoles={['employee', 'admin']}>
                       <NewComplaint />
                     </ProtectedRoute>
                   }
@@ -81,18 +78,8 @@ export function App() {
                 <Route
                   path="/complaints/:id"
                   element={
-                    <ProtectedRoute allowedRoles={['employee', 'dept_head', 'admin']}>
+                    <ProtectedRoute allowedRoles={['employee', 'admin']}>
                       <ComplaintDetail />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* Department Head Board */}
-                <Route
-                  path="/dept-head"
-                  element={
-                    <ProtectedRoute allowedRoles={['dept_head', 'admin']}>
-                      <DeptHeadBoard />
                     </ProtectedRoute>
                   }
                 />

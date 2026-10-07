@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- User role enum
 DO $$ BEGIN
-  CREATE TYPE user_role AS ENUM ('employee', 'dept_head', 'admin');
+  CREATE TYPE user_role AS ENUM ('employee', 'admin');
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;

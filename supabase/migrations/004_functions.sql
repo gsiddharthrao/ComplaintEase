@@ -160,12 +160,6 @@ BEGIN
       RAISE EXCEPTION 'Employees may only reopen their own resolved complaints'
         USING ERRCODE = '42501';
     END IF;
-  ELSIF v_caller_role = 'dept_head' THEN
-    -- Department heads can only manage complaints within their department
-    IF v_complaint.department_id != v_caller_dept THEN
-      RAISE EXCEPTION 'Department heads can only manage complaints within their department'
-        USING ERRCODE = '42501';
-    END IF;
   ELSIF v_caller_role = 'admin' THEN
     -- Admins have global permission
     NULL;

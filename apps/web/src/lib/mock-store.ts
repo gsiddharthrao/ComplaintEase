@@ -27,18 +27,6 @@ export const DEMO_PROFILES: Record<string, { user: any; profile: Profile }> = {
       updated_at: '2026-10-01T08:00:00.000Z',
     },
   },
-  'depthead@demo.com': {
-    user: { id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', email: 'depthead@demo.com' },
-    profile: {
-      id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-      full_name: 'Sarah IT Head',
-      role: 'dept_head',
-      department_id: '11111111-1111-1111-1111-111111111111',
-      avatar_url: null,
-      created_at: '2026-10-01T08:00:00.000Z',
-      updated_at: '2026-10-01T08:00:00.000Z',
-    },
-  },
   'admin@demo.com': {
     user: { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', email: 'admin@demo.com' },
     profile: {
@@ -54,7 +42,7 @@ export const DEMO_PROFILES: Record<string, { user: any; profile: Profile }> = {
 };
 
 const INITIAL_DEPARTMENTS: Department[] = [
-  { id: '11111111-1111-1111-1111-111111111111', name: 'Information Technology', description: 'IT systems, hardware, networks', head_id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-01T00:00:00.000Z' },
+  { id: '11111111-1111-1111-1111-111111111111', name: 'Information Technology', description: 'IT systems, hardware, networks', head_id: null, created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-01T00:00:00.000Z' },
   { id: '22222222-2222-2222-2222-222222222222', name: 'Human Resources', description: 'People operations, payroll, welfare', head_id: null, created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-01T00:00:00.000Z' },
   { id: '33333333-3333-3333-3333-333333333333', name: 'Finance & Accounting', description: 'Billing, corporate expenses, audits', head_id: null, created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-01T00:00:00.000Z' },
   { id: '44444444-4444-4444-4444-444444444444', name: 'Facilities & Operations', description: 'Workplace HVAC, security, ergonomics', head_id: null, created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-01T00:00:00.000Z' },
@@ -128,10 +116,10 @@ const INITIAL_COMPLAINTS: any[] = [
         complaint_id: 'c1111111-0002-0000-0000-000000000002',
         from_status: 'submitted',
         to_status: 'under_review',
-        changed_by: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        changed_by: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
         note: 'Reviewing hardware maintenance schedule',
         created_at: '2026-10-06T11:20:00.000Z',
-        changer: { full_name: 'Sarah IT Head' },
+        changer: { full_name: 'Marcus Administrator' },
       },
     ],
   },
@@ -249,7 +237,7 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
   },
   {
     id: 'n2',
-    user_id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+    user_id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
     complaint_id: 'c1111111-0001-0000-0000-000000000001',
     type: 'status_changed',
     title: 'New Complaint Filed',
@@ -262,14 +250,14 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
 const INITIAL_AUDIT_LOGS = [
   {
     id: 'aud-1',
-    actor: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+    actor: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
     action: 'UPDATE',
     table_name: 'complaints',
     row_id: 'c1111111-0003-0000-0000-000000000003',
     old_data: { status: 'in_progress', version: 3 },
     new_data: { status: 'resolved', version: 4 },
     created_at: '2026-10-05T16:00:00.000Z',
-    actor_profile: { full_name: 'Sarah IT Head', role: 'dept_head' },
+    actor_profile: { full_name: 'Marcus Administrator', role: 'admin' },
   },
   {
     id: 'aud-2',
@@ -355,13 +343,9 @@ class MockStore {
   listComplaints(params: Record<string, any>, currentProfile?: Profile): ComplaintListResponse {
     let list = [...this.complaints];
 
-    // RLS emulation
+    // RLS emulation: employees see only their own complaints; admins see all
     if (currentProfile?.role === 'employee') {
       list = list.filter((c) => c.created_by === currentProfile.id);
-    } else if (currentProfile?.role === 'dept_head') {
-      if (currentProfile.department_id) {
-        list = list.filter((c) => c.department_id === currentProfile.department_id);
-      }
     }
 
     if (params.status) list = list.filter((c) => c.status === params.status);
@@ -485,7 +469,7 @@ class MockStore {
       complaint_id: id,
       from_status: oldStatus,
       to_status: data.new_status,
-      changed_by: currentProfile?.id || 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      changed_by: currentProfile?.id || 'cccccccc-cccc-cccc-cccc-cccccccccccc',
       note: data.note || null,
       created_at: new Date().toISOString(),
       changer: { full_name: currentProfile?.full_name || 'Staff' },
@@ -597,3 +581,4 @@ class MockStore {
 }
 
 export const mockStore = new MockStore();
+

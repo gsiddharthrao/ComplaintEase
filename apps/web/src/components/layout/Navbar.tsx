@@ -35,7 +35,6 @@ export const Navbar: React.FC = () => {
 
   const roleColors: Record<string, string> = {
     employee: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    dept_head: 'bg-purple-50 text-purple-700 border-purple-200',
     admin: 'bg-rose-50 text-rose-700 border-rose-200',
   };
 

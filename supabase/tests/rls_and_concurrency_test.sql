@@ -13,7 +13,6 @@ DECLARE
   v_dept_hr UUID := '22222222-2222-2222-2222-222222222222';
   v_emp_id UUID := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
   v_emp2_id UUID := 'aaaaaaaa-aaaa-aaaa-aaaa-bbbbbbbbbbbb';
-  v_head_id UUID := 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
   v_admin_id UUID := 'cccccccc-cccc-cccc-cccc-cccccccccccc';
   v_comp1_id UUID := 'dddddddd-dddd-dddd-dddd-dddddddddddd';
   v_comp2_id UUID := 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
@@ -29,7 +28,6 @@ BEGIN
   INSERT INTO profiles (id, full_name, role, department_id) VALUES
     (v_emp_id, 'Test Employee 1', 'employee', v_dept_it),
     (v_emp2_id, 'Test Employee 2', 'employee', v_dept_hr),
-    (v_head_id, 'Test Dept Head', 'dept_head', v_dept_it),
     (v_admin_id, 'Test Admin', 'admin', NULL)
   ON CONFLICT (id) DO UPDATE SET role = EXCLUDED.role, department_id = EXCLUDED.department_id;
 
@@ -81,8 +79,8 @@ BEGIN
   -- -------------------------------------------------------------------------
   -- TEST 4: Authorized Transition updates version and adds status_history
   -- -------------------------------------------------------------------------
-  -- Dept Head of IT transitions IT complaint: submitted -> under_review
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_head_id::text, 'role', 'authenticated')::text, true);
+  -- Admin transitions IT complaint: submitted -> under_review
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
   PERFORM transition_complaint(v_comp1_id, 'under_review', 'Reviewing IT complaint', 1);
 
   SELECT count(*) INTO v_count FROM complaints WHERE id = v_comp1_id AND status = 'under_review' AND version = 2;
@@ -97,15 +95,16 @@ BEGIN
   RAISE NOTICE 'PASS: Test 4 - Valid transition succeeded, version bumped to 2, status_history recorded';
 
   -- -------------------------------------------------------------------------
-  -- TEST 5: Dept Head forbidden from transitioning complaints of OTHER departments
+  -- TEST 5: Employee forbidden from reopening complaint that is not resolved
   -- -------------------------------------------------------------------------
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp_id::text, 'role', 'authenticated')::text, true);
   BEGIN
-    -- Dept Head is for IT, trying to transition HR complaint (v_comp2_id)
-    PERFORM transition_complaint(v_comp2_id, 'under_review', 'Cross-dept illegal attempt', 1);
-    RAISE EXCEPTION 'TEST 5 FAILED: Dept head transitioned other dept complaint!';
+    -- Complaint is currently under_review, not resolved
+    PERFORM transition_complaint(v_comp1_id, 'reopened', 'Illegal reopen', 2);
+    RAISE EXCEPTION 'TEST 5 FAILED: Employee was able to reopen an unresolved complaint!';
   EXCEPTION
-    WHEN SQLSTATE '42501' THEN
-      RAISE NOTICE 'PASS: Test 5 - Dept head cross-department transition blocked (SQLSTATE 42501)';
+    WHEN SQLSTATE 'P0001' THEN
+      RAISE NOTICE 'PASS: Test 5 - Employee reopening unresolved complaint blocked (SQLSTATE P0001)';
   END;
 
   -- -------------------------------------------------------------------------
@@ -148,9 +147,9 @@ BEGIN
   -- -------------------------------------------------------------------------
   -- TEST 8: Internal Comments Visibility & RLS Verification
   -- -------------------------------------------------------------------------
-  -- Insert internal comment as Dept Head
+  -- Insert internal comment as Admin
   INSERT INTO comments (id, complaint_id, author_id, body, is_internal)
-  VALUES (v_comment_id, v_comp1_id, v_head_id, 'CONFIDENTIAL: Internal staff note regarding switch defect', true)
+  VALUES (v_comment_id, v_comp1_id, v_admin_id, 'CONFIDENTIAL: Internal staff note regarding switch defect', true)
   ON CONFLICT (id) DO NOTHING;
 
   -- Verify employee cannot see internal comment

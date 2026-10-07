@@ -109,7 +109,6 @@ export const Register: React.FC = () => {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white"
               >
                 <option value="employee">Employee</option>
-                <option value="dept_head">Department Head</option>
                 <option value="admin">System Admin</option>
               </select>
             </div>
