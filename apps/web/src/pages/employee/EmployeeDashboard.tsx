@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api-client.js';
 import { StatusBadge } from '../../components/complaints/StatusBadge.js';
 import { PriorityBadge } from '../../components/complaints/PriorityBadge.js';
-import { PlusCircle, Search, Filter, AlertCircle, Clock, ChevronRight } from 'lucide-react';
+import { PlusCircle, Search, Filter, AlertCircle, Clock, ChevronRight, MapPin, Camera } from 'lucide-react';
 import type { ComplaintStatus, ComplaintPriority } from '@complaintease/shared';
 
 export const EmployeeDashboard: React.FC = () => {
@@ -147,14 +147,32 @@ export const EmployeeDashboard: React.FC = () => {
                   {item.description}
                 </p>
 
-                <div className="flex items-center gap-4 text-[11px] text-slate-400 mt-2">
+                <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 mt-2">
                   <span>Filed {new Date(item.created_at).toLocaleDateString()}</span>
                   {item.assigned_to && (
                     <span>Assigned to: <strong className="text-slate-600">{item.assigned_to.full_name}</strong></span>
                   )}
+                  {item.location_lat != null && (
+                    <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                      <span className="truncate max-w-[150px]">{item.location_address || 'Geotagged'}</span>
+                    </span>
+                  )}
+                  {item.image_url && (
+                    <span className="inline-flex items-center gap-1 text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                      <Camera className="w-3 h-3 text-blue-600 shrink-0" />
+                      <span>Photo Attached</span>
+                    </span>
+                  )}
                   <span>Version {item.version}</span>
                 </div>
               </div>
+
+              {item.image_url && (
+                <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 shrink-0 mr-3 hidden sm:block">
+                  <img src={item.image_url} alt="Evidence thumbnail" className="w-full h-full object-cover" />
+                </div>
+              )}
 
               <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-brand-600 shrink-0 transition-transform group-hover:translate-x-0.5" />
             </Link>

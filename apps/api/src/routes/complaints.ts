@@ -40,6 +40,10 @@ complaintsRouter.get(
           updated_at,
           resolved_at,
           version,
+          location_lat,
+          location_lng,
+          location_address,
+          image_url,
           category:categories(id, name),
           department:departments(id, name),
           creator:profiles!complaints_created_by_fkey(id, full_name, avatar_url),
@@ -96,6 +100,10 @@ complaintsRouter.get(
           updated_at: row.updated_at,
           resolved_at: row.resolved_at,
           version: row.version,
+          location_lat: row.location_lat ?? null,
+          location_lng: row.location_lng ?? null,
+          location_address: row.location_address ?? null,
+          image_url: row.image_url ?? null,
           category: row.category || { id: row.category_id, name: 'Unknown' },
           department: row.department || { id: row.department_id, name: 'Unknown' },
           creator: row.creator || { id: row.created_by, full_name: 'Unknown', avatar_url: null },
@@ -148,6 +156,10 @@ complaintsRouter.get(
           updated_at,
           resolved_at,
           version,
+          location_lat,
+          location_lng,
+          location_address,
+          image_url,
           category:categories(id, name),
           department:departments(id, name),
           creator:profiles!complaints_created_by_fkey(id, full_name, avatar_url),
@@ -202,7 +214,17 @@ complaintsRouter.post(
   validateBody(createComplaintSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { title, description, category_id, department_id, priority } = req.body;
+      const {
+        title,
+        description,
+        category_id,
+        department_id,
+        priority,
+        location_lat,
+        location_lng,
+        location_address,
+        image_url,
+      } = req.body;
       const supabase = req.supabase!;
 
       const { data, error } = await supabase
@@ -213,6 +235,10 @@ complaintsRouter.post(
           category_id,
           department_id,
           priority,
+          location_lat: location_lat ?? null,
+          location_lng: location_lng ?? null,
+          location_address: location_address ?? null,
+          image_url: image_url ?? null,
           created_by: req.user!.id,
           status: 'submitted',
           version: 1,

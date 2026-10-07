@@ -7,6 +7,10 @@ export const createComplaintSchema = z.object({
   category_id: z.string().uuid('Must be a valid category ID'),
   department_id: z.string().uuid('Must be a valid department ID'),
   priority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
+  location_lat: z.number().nullable().optional(),
+  location_lng: z.number().nullable().optional(),
+  location_address: z.string().max(500).nullable().optional(),
+  image_url: z.string().nullable().optional(),
 });
 
 export type CreateComplaintInput = z.infer<typeof createComplaintSchema>;

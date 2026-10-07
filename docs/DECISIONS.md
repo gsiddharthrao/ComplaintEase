@@ -79,3 +79,16 @@ This document captures every major engineering trade-off, architectural choice, 
   - *Pros:* Dramatically simplifies database RLS policy evaluation trees (eliminates nested department-boundary lookups per row) and prevents authorization deadlock when department heads transition between divisions. Administrators have centralized authority to assign specialists, triage tickets, and advance lifecycle transitions across all departments.
   - *Cons:* In organizations with thousands of staff, admin oversight may need to be delegated to specific departmental groups in future iterations.
 
+---
+
+## ADR 8: Live Geolocation Capture and Photo Evidence Pipeline
+
+- **Decision:** Employees filing complaints can capture live GPS coordinates (`navigator.geolocation.getCurrentPosition`), physical landmark/room descriptions, and upload photographic evidence (stored as high-resolution data URLs in demo mode and Supabase Storage in cloud mode). These fields are indexed (`idx_complaints_location`) and forwarded in real time to the Administrator's Incident & Geotag Feed with direct Google Maps navigation links and high-res lightbox modals.
+- **Alternatives Rejected:**
+  - *Text-Only Location Description:* Requiring users to describe locations in freeform text without verified GPS telemetry.
+  - *Blocking Offline Uploads without Cloud Storage:* Enforcing mandatory S3/Supabase bucket roundtrips for local evaluation, which causes file upload failures during local demos without active cloud credentials.
+- **Trade-offs & Rationale:**
+  - *Pros:* Direct GPS telemetry and photographic evidence drastically cut incident response times by allowing maintenance staff to pinpoint exact hardware/facility locations on campus. Visual evidence prevents fraudulent or ambiguous claims.
+  - *Cons:* Browser privacy settings may prompt or block GPS permissions on desktop environments. Mitigated by providing physical landmark text inputs and an instantaneous one-click "Campus Demo Pin" for evaluation.
+
+

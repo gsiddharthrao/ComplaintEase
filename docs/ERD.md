@@ -63,6 +63,10 @@ erDiagram
         uuid created_by FK
         complaint_status status "submitted | under_review | assigned | in_progress | resolved | closed | rejected | reopened"
         complaint_priority priority "low | medium | high | critical"
+        float location_lat "Nullable: GPS latitude"
+        float location_lng "Nullable: GPS longitude"
+        text location_address "Nullable: physical landmark or room note"
+        text image_url "Nullable: photographic evidence URI/URL"
         integer version "Optimistic locking counter"
         timestamptz created_at
         timestamptz updated_at

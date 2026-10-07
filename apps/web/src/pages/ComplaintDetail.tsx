@@ -23,6 +23,11 @@ import {
   AlertTriangle,
   RotateCcw,
   UserPlus,
+  MapPin,
+  ExternalLink,
+  Image as ImageIcon,
+  Maximize2,
+  X,
 } from 'lucide-react';
 
 export const ComplaintDetail: React.FC = () => {
@@ -34,6 +39,7 @@ export const ComplaintDetail: React.FC = () => {
   const [transitionNote, setTransitionNote] = useState('');
   const [selectedNextStatus, setSelectedNextStatus] = useState<ComplaintStatus | null>(null);
   const [transitionError, setTransitionError] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // Assignment state
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -181,6 +187,80 @@ export const ComplaintDetail: React.FC = () => {
         <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap bg-slate-50/50 p-4 rounded-xl border border-slate-100">
           {complaint.description}
         </p>
+
+        {/* Incident Image Evidence & Live Location Cards */}
+        {(complaint.image_url || complaint.location_lat || complaint.location_address) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            {/* Live Location Card */}
+            {(complaint.location_lat || complaint.location_address) && (
+              <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-emerald-800 font-bold text-xs uppercase tracking-wider">
+                    <MapPin className="w-4 h-4 text-emerald-600" />
+                    <span>Incident Geolocation</span>
+                  </div>
+                  {complaint.location_lat && complaint.location_lng && (
+                    <a
+                      href={`https://www.google.com/maps?q=${complaint.location_lat},${complaint.location_lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-1 text-xs font-semibold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded-md border border-emerald-200 transition-colors shadow-sm"
+                    >
+                      <span>Open Maps</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+
+                {complaint.location_address && (
+                  <p className="text-xs font-semibold text-slate-800">
+                    {complaint.location_address}
+                  </p>
+                )}
+
+                {complaint.location_lat && complaint.location_lng && (
+                  <div className="flex items-center space-x-3 text-[11px] font-mono text-emerald-900 bg-white/80 p-2 rounded-lg border border-emerald-100">
+                    <span>Lat: {complaint.location_lat.toFixed(6)}°</span>
+                    <span>Lng: {complaint.location_lng.toFixed(6)}°</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Attached Photo Evidence Card */}
+            {complaint.image_url && (
+              <div className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-indigo-800 font-bold text-xs uppercase tracking-wider">
+                    <ImageIcon className="w-4 h-4 text-indigo-600" />
+                    <span>Attached Evidence Photo</span>
+                  </div>
+                  <button
+                    onClick={() => setShowImageModal(true)}
+                    className="inline-flex items-center space-x-1 text-xs font-semibold text-indigo-700 hover:text-indigo-900 bg-white px-2.5 py-1 rounded-md border border-indigo-200 transition-colors shadow-sm"
+                  >
+                    <Maximize2 className="w-3 h-3" />
+                    <span>Enlarge</span>
+                  </button>
+                </div>
+
+                <div
+                  onClick={() => setShowImageModal(true)}
+                  className="cursor-pointer group relative overflow-hidden rounded-lg border border-indigo-200 aspect-video max-h-40 bg-black/5"
+                >
+                  <img
+                    src={complaint.image_url}
+                    alt="Complaint evidence"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  />
+                  <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold">
+                    <Maximize2 className="w-4 h-4 mr-1" /> Click to expand
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Metadata grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100 text-xs text-slate-600">
@@ -383,6 +463,38 @@ export const ComplaintDetail: React.FC = () => {
           {activeTab === 'attachments' && <AttachmentsList complaintId={complaint.id} />}
         </div>
       </div>
+
+      {/* Lightbox Modal for Incident Image */}
+      {showImageModal && complaint.image_url && (
+        <div
+          onClick={() => setShowImageModal(false)}
+          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col"
+          >
+            <div className="flex items-center justify-between p-3 border-b border-slate-100 bg-slate-50">
+              <span className="text-xs font-bold text-slate-800 truncate">
+                Incident Photo Evidence: {complaint.title}
+              </span>
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-2 overflow-auto max-h-[calc(90vh-3rem)] flex items-center justify-center bg-slate-950">
+              <img
+                src={complaint.image_url}
+                alt="Enlarged complaint evidence"
+                className="max-h-[80vh] w-auto object-contain rounded-lg shadow-lg"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
