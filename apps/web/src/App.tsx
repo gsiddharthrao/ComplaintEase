@@ -21,6 +21,16 @@ const AdminPanel = lazy(() =>
   import('./pages/admin/AdminPanel.js').then((m) => ({ default: m.AdminPanel })),
 );
 
+import { useAuth } from './context/AuthContext.js';
+
+const RoleBasedRedirect: React.FC = () => {
+  const { profile } = useAuth();
+  if (profile?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+  return <Navigate to="/employee" replace />;
+};
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -56,7 +66,7 @@ export function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route path="/" element={<Navigate to="/employee" replace />} />
+                <Route path="/" element={<RoleBasedRedirect />} />
 
                 {/* Employee / General routes */}
                 <Route
@@ -70,7 +80,7 @@ export function App() {
                 <Route
                   path="/complaints/new"
                   element={
-                    <ProtectedRoute allowedRoles={['employee', 'admin']}>
+                    <ProtectedRoute allowedRoles={['employee']}>
                       <NewComplaint />
                     </ProtectedRoute>
                   }

@@ -5,14 +5,14 @@ const DEMO_USERS = [
   {
     email: 'employee@demo.com',
     password: 'Demo1234!',
-    full_name: 'Alex Employee',
+    full_name: 'Alex Rivera (Plant Shift Operator)',
     role: 'employee' as const,
     department_id: null,
   },
   {
     email: 'admin@demo.com',
     password: 'Demo1234!',
-    full_name: 'Marcus Administrator',
+    full_name: 'Marcus Vance (Plant Operations Director)',
     role: 'admin' as const,
     department_id: null,
   },

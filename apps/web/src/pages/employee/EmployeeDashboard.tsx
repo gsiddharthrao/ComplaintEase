@@ -6,9 +6,11 @@ import { StatusBadge } from '../../components/complaints/StatusBadge.js';
 import { PriorityBadge } from '../../components/complaints/PriorityBadge.js';
 import { PlusCircle, Search, Filter, AlertCircle, Clock, ChevronRight, MapPin, Camera, X } from 'lucide-react';
 import { LocationMap } from '../../components/common/LocationMap.js';
+import { useAuth } from '../../context/AuthContext.js';
 import type { ComplaintStatus, ComplaintPriority } from '@complaintease/shared';
 
 export const EmployeeDashboard: React.FC = () => {
+  const { profile } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ComplaintStatus | ''>('');
   const [priorityFilter, setPriorityFilter] = useState<ComplaintPriority | ''>('');
@@ -32,19 +34,25 @@ export const EmployeeDashboard: React.FC = () => {
       {/* Top Banner / Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Complaints Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            {profile?.role === 'admin' ? 'Plant Incidents & Work Register' : 'My Reported Incidents'}
+          </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Track status, review updates, and collaborate on resolutions.
+            {profile?.role === 'admin'
+              ? 'Complete overview of reported plant breakdowns, safety hazards, and field repairs.'
+              : 'Track reported equipment breakdowns, safety alarms, and technician progress.'}
           </p>
         </div>
 
-        <Link
-          to="/complaints/new"
-          className="inline-flex items-center space-x-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm rounded-xl shadow-sm transition-colors shrink-0"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>File New Complaint</span>
-        </Link>
+        {profile?.role === 'employee' && (
+          <Link
+            to="/complaints/new"
+            className="inline-flex items-center space-x-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm rounded-xl shadow-sm transition-colors shrink-0"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Report Plant Incident</span>
+          </Link>
+        )}
       </div>
 
       {/* Filters and Search Bar */}
@@ -53,7 +61,7 @@ export const EmployeeDashboard: React.FC = () => {
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search complaints by title, keyword, or description..."
+            placeholder="Search plant incidents by title, keyword, or machinery sector..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
@@ -96,30 +104,32 @@ export const EmployeeDashboard: React.FC = () => {
       {isLoading ? (
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
           <div className="w-8 h-8 border-3 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-slate-500">Loading complaints...</p>
+          <p className="text-sm text-slate-500">Loading plant incidents...</p>
         </div>
       ) : error ? (
         <div className="bg-rose-50 border border-rose-200 rounded-xl p-6 text-center text-rose-700">
           <AlertCircle className="w-6 h-6 mx-auto mb-2 text-rose-500" />
-          <p className="text-sm font-semibold">Failed to load complaints</p>
+          <p className="text-sm font-semibold">Failed to load plant incidents</p>
           <p className="text-xs mt-1">{(error as any)?.message}</p>
         </div>
       ) : complaints.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
           <Clock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-slate-800">No complaints found</h3>
+          <h3 className="text-base font-semibold text-slate-800">No plant incidents found</h3>
           <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
             {search || statusFilter || priorityFilter
               ? 'Try adjusting your filters or search terms.'
-              : 'You have not submitted any complaints yet.'}
+              : 'No incident reports logged under this filter.'}
           </p>
-          <Link
-            to="/complaints/new"
-            className="mt-4 inline-flex items-center space-x-1.5 px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold rounded-lg transition-colors"
-          >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>Create your first complaint</span>
-          </Link>
+          {profile?.role === 'employee' && (
+            <Link
+              to="/complaints/new"
+              className="mt-4 inline-flex items-center space-x-1.5 px-4 py-2 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold rounded-lg transition-colors"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Report a plant incident</span>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">

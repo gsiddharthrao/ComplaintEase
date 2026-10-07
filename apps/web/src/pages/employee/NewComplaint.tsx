@@ -103,8 +103,8 @@ export const NewComplaint: React.FC = () => {
   };
 
   const handleUseDemoLocation = () => {
-    setCoords({ lat: 37.774929, lng: -122.419416, accuracy: 8 });
-    setLocationAddress('Enterprise Campus - Main Tech Wing (Floor 3)');
+    setCoords({ lat: 28.535516, lng: 77.391026, accuracy: 5 });
+    setLocationAddress('Plant Sector B - Heavy Machinery Bay 4 (Press Station #4)');
     setGeoError(null);
   };
 
@@ -159,10 +159,10 @@ export const NewComplaint: React.FC = () => {
 
   const handleUseDemoImage = () => {
     setImagePreview(
-      'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
     );
-    setImageFileName('hardware_incident_proof.jpg');
-    setImageFileSize('342 KB');
+    setImageFileName('hydraulic_manifold_pressure_leak.jpg');
+    setImageFileSize('684 KB');
     setImageError(null);
   };
 
@@ -203,9 +203,9 @@ export const NewComplaint: React.FC = () => {
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">File a Complaint</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Report Plant Incident / Issue</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Submit an incident with live GPS coordinates and photo evidence forwarded directly to administration.
+            Submit a plant machinery, electrical, or safety incident with live GPS coordinates and photo evidence forwarded directly to plant operations.
           </p>
         </div>
       </div>
@@ -289,11 +289,11 @@ export const NewComplaint: React.FC = () => {
           {/* Title */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-              Complaint Subject / Title *
+              Incident Subject / Title *
             </label>
             <input
               {...register('title')}
-              placeholder="Concise summary (e.g. WiFi outage in Floor 3 conference room)"
+              placeholder="Concise summary (e.g. 500-Ton Hydraulic Press primary cylinder pressure drop)"
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
             />
             {errors.title && (
@@ -304,12 +304,12 @@ export const NewComplaint: React.FC = () => {
           {/* Description */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-              Comprehensive Description *
+              Comprehensive Technical Description *
             </label>
             <textarea
               {...register('description')}
               rows={4}
-              placeholder="Please provide full details, timestamps, error messages, and business impact (minimum 20 characters)..."
+              placeholder="Provide machine telemetry, observed gauge pressures, abnormal acoustics, and safety hazard impact (minimum 20 characters)..."
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none resize-none"
             />
             {errors.description && (
@@ -361,10 +361,10 @@ export const NewComplaint: React.FC = () => {
                       type="button"
                       onClick={handleUseDemoLocation}
                       className="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium rounded-lg transition-colors"
-                      title="Quick fill sample office coordinates"
+                      title="Quick fill sample plant floor coordinates"
                     >
                       <Sparkles className="w-3 h-3 text-amber-500" />
-                      <span>Campus Demo Pin</span>
+                      <span>Plant Floor Demo Pin</span>
                     </button>
                   </>
                 ) : (
@@ -444,13 +444,13 @@ export const NewComplaint: React.FC = () => {
             {/* Landmark / Address input */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                Room Number, Floor, or Physical Landmark (Forwarded to Admin)
+                Machinery Sector, Bay Number, or Physical Landmark (Forwarded to Admin)
               </label>
               <input
                 type="text"
                 value={locationAddress}
                 onChange={(e) => setLocationAddress(e.target.value)}
-                placeholder="e.g. Conference Room C, Floor 3, West Wing or Server Rack 4"
+                placeholder="e.g. Sector B - Heavy Machinery Bay 4, Boiler House Mezzanine, or MCC Substation Panel 2"
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
@@ -470,7 +470,7 @@ export const NewComplaint: React.FC = () => {
                     Incident Photo & Image Evidence
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Attach hardware damage, room conditions, or error screenshot for administrator review.
+                    Attach machinery damage, pipe leaks, or gauge reading photos for administrator review.
                   </p>
                 </div>
               </div>
@@ -480,10 +480,10 @@ export const NewComplaint: React.FC = () => {
                   type="button"
                   onClick={handleUseDemoImage}
                   className="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium rounded-lg transition-colors"
-                  title="Quick fill sample equipment photo"
+                  title="Quick fill sample machinery incident photo"
                 >
                   <Sparkles className="w-3 h-3 text-amber-500" />
-                  <span>Sample Hardware Photo</span>
+                  <span>Plant Incident Photo</span>
                 </button>
               )}
             </div>

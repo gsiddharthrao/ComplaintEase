@@ -57,7 +57,7 @@ export const Login: React.FC = () => {
           Complaint<span className="text-brand-400">Ease</span>
         </h2>
         <p className="mt-2 text-sm text-slate-300">
-          Enterprise Complaint Management System
+          Plant Operations & Industrial Incident Management System
         </p>
       </div>
 
@@ -118,16 +118,18 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleDemoLogin('employee@demo.com')}
-                className="py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold text-center transition-colors"
+                className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold text-center transition-colors flex flex-col items-center justify-center"
               >
-                Employee
+                <span>Shift Operator</span>
+                <span className="text-[10px] text-emerald-600 font-normal">Alex Rivera (Employee)</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleDemoLogin('admin@demo.com')}
-                className="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold text-center transition-colors"
+                className="py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-semibold text-center transition-colors flex flex-col items-center justify-center"
               >
-                Admin
+                <span>Plant Director</span>
+                <span className="text-[10px] text-rose-600 font-normal">Marcus Vance (Admin)</span>
               </button>
             </div>
           </div>

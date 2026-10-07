@@ -4,25 +4,25 @@
 
 -- 1. Fixed Department UUIDs for deterministic testing
 INSERT INTO departments (id, name, description) VALUES
-  ('11111111-1111-1111-1111-111111111111', 'Information Technology', 'IT infrastructure, systems, network, and software engineering'),
-  ('22222222-2222-2222-2222-222222222222', 'Human Resources', 'Talent acquisition, employee welfare, payroll, and company benefits'),
-  ('33333333-3333-3333-3333-333333333333', 'Finance & Accounting', 'Invoicing, corporate expense management, and budget allocations'),
-  ('44444444-4444-4444-4444-444444444444', 'Facilities & Operations', 'Workplace ergonomics, HVAC, electrical, building security, and sanitation'),
-  ('55555555-5555-5555-5555-555555555555', 'Customer Experience', 'Escalations, tier-3 support disputes, and customer contract issues')
+  ('11111111-1111-1111-1111-111111111111', 'Plant Mechanical & Heavy Equipment', 'Hydraulics, compressors, stamping presses, and conveyor systems'),
+  ('22222222-2222-2222-2222-222222222222', 'Electrical & Power Distribution', '415V/11kV MCC switchgear, transformers, motor drives, and backup gensets'),
+  ('33333333-3333-3333-3333-333333333333', 'Industrial Safety & EHS', 'Environmental health, hazmat containment, machine guards, and OSHA protocols'),
+  ('44444444-4444-4444-4444-444444444444', 'Utilities, Steam & HVAC', 'Boiler house, 12-bar steam headers, chillers, cooling towers, and air compressors'),
+  ('55555555-5555-5555-5555-555555555555', 'Automation, SCADA & Plant IT', 'PLCs, fieldbus telemetry, control room SCADA, sensors, and plant networking')
 ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description;
 
 -- 2. Categories
 INSERT INTO categories (id, name, description, department_id) VALUES
-  ('a1111111-1111-1111-1111-111111111111', 'VPN & Connectivity Outage', 'Issues connecting to corporate networks or cloud VPCs', '11111111-1111-1111-1111-111111111111'),
-  ('a2222222-2222-2222-2222-222222222222', 'Hardware Malfunction', 'Broken laptop monitors, docking stations, keyboards', '11111111-1111-1111-1111-111111111111'),
-  ('a3333333-3333-3333-3333-333333333333', 'Software Access Permission', 'Access requests to GitHub, AWS IAM, or internal tooling', '11111111-1111-1111-1111-111111111111'),
-  ('b1111111-1111-1111-1111-111111111111', 'Payroll Discrepancy', 'Salary delays, missing reimbursements, or tax deductions', '22222222-2222-2222-2222-222222222222'),
-  ('b2222222-2222-2222-2222-222222222222', 'Workplace Harassment / Grievance', 'Interpersonal conflicts and policy violations', '22222222-2222-2222-2222-222222222222'),
-  ('c1111111-1111-1111-1111-111111111111', 'Expense Report Approval', 'Pending corporate credit card or travel receipts', '33333333-3333-3333-3333-333333333333'),
-  ('d1111111-1111-1111-1111-111111111111', 'HVAC / Temperature Regulation', 'Server room or office floor heating/cooling issues', '44444444-4444-4444-4444-444444444444'),
-  ('d2222222-2222-2222-2222-222222222222', 'Badge Access Failure', 'Smart card RFID readers not functioning', '44444444-4444-4444-4444-444444444444'),
-  ('e1111111-1111-1111-1111-111111111111', 'Customer Escalation Dispute', 'High-priority SLA breach or client complaint', '55555555-5555-5555-5555-555555555555'),
-  ('f1111111-1111-1111-1111-111111111111', 'General Inquiry', 'Cross-departmental questions and operational suggestions', NULL)
+  ('a1111111-1111-1111-1111-111111111111', 'Hydraulic & Pneumatic Line Failure', 'High-pressure line bursts, cylinder leakage, manifold seal blowouts', '11111111-1111-1111-1111-111111111111'),
+  ('a2222222-2222-2222-2222-222222222222', 'Conveyor & Gearbox Acoustic Vibration', 'Bearing degradation, roller seizure, abnormal gearbox harmonics', '11111111-1111-1111-1111-111111111111'),
+  ('b1111111-1111-1111-1111-111111111111', '415V Switchgear & Motor Drive Trip', 'MCC feeder trips, VFD overcurrent fault, terminal busbar thermal spike', '22222222-2222-2222-2222-222222222222'),
+  ('b2222222-2222-2222-2222-222222222222', 'Emergency Power & UPS Fault', 'Diesel generator failover stall, battery bank cell discharge', '22222222-2222-2222-2222-222222222222'),
+  ('c1111111-1111-1111-1111-111111111111', 'Hazardous Chemical Spill & Fume Alert', 'Coolant/acid containment breach, exhaust scrubber failure', '33333333-3333-3333-3333-333333333333'),
+  ('c2222222-2222-2222-2222-222222222222', 'E-Stop & Guard Interlock Defect', 'Safety light curtains, perimeter cage door interlocks, trip wires', '33333333-3333-3333-3333-333333333333'),
+  ('d1111111-1111-1111-1111-111111111111', 'High-Pressure Steam Flange Leak', '12-bar boiler header leak, valve gland blowout, live steam hazard', '44444444-4444-4444-4444-444444444444'),
+  ('d2222222-2222-2222-2222-222222222222', 'Chiller Plant & Cooling Tower Loop', 'Condenser water temperature spike, cooling water flow drop', '44444444-4444-4444-4444-444444444444'),
+  ('e1111111-1111-1111-1111-111111111111', 'PLC Bus Timeout & Sensor Fault', 'Profibus/Modbus drops, 4-20mA pressure/temp transmitter drift', '55555555-5555-5555-5555-555555555555'),
+  ('f1111111-1111-1111-1111-111111111111', 'General Plant Hazard / Near Miss', 'Loose catwalk guardrail, tripping hazard, overhead crane cable wear', NULL)
 ON CONFLICT (name, department_id) DO NOTHING;
 
 -- 3. Procedure to generate N realistic complaints for performance testing
@@ -37,16 +37,16 @@ DECLARE
   v_statuses complaint_status[] := ARRAY['submitted', 'under_review', 'assigned', 'in_progress', 'resolved', 'closed', 'rejected', 'reopened']::complaint_status[];
   v_priorities complaint_priority[] := ARRAY['low', 'medium', 'high', 'critical']::complaint_priority[];
   v_titles TEXT[] := ARRAY[
-    'Laptop thermal throttling during build pipeline execution',
-    'Intermittent WiFi disconnects in Conference Room C',
-    'Reimbursement delayed for Q3 cloud conference tickets',
-    'Emergency exit door sensor beeping continuously on floor 4',
-    'Database migration access credentials not provisioning',
-    'Medical insurance enrollment portal throws 500 error',
-    'Customer SLA breached due to unexpected payment gateway timeout',
-    'Ergonomic chair request pending approval for three weeks',
-    'VPN tunnel dropping packets during customer demo sessions',
-    'Company cafeteria contactless payment reader offline'
+    '500-Ton Hydraulic Press primary cylinder pressure drop',
+    '415V MCC switchgear feeder breaker tripping on overcurrent',
+    '12-Bar steam header flange gasket failure in boiler house',
+    'Raw material conveyor belt drive bearing acoustic vibration spike',
+    'PLC Profibus DP communication loss in packaging cell #2',
+    'Chemical dosing pump diaphragm failure in effluent plant',
+    'Cooling water recirculation pump mechanical seal weeping',
+    'Emergency stop trip wire broken along assembly line 3',
+    'Compressor room receiver vessel pressure relief valve weeping',
+    'Heavy crane hoist motor thermal overload trip during ladle transfer'
   ];
 BEGIN
   -- Find an employee profile to attribute complaints to

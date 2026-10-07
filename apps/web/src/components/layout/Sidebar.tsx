@@ -20,15 +20,14 @@ export const Sidebar: React.FC = () => {
   const navItems = [
     ...(role === 'employee'
       ? [
-          { to: '/employee', label: 'My Complaints', icon: FileText },
-          { to: '/complaints/new', label: 'File Complaint', icon: PlusCircle },
+          { to: '/employee', label: 'My Reported Incidents', icon: FileText },
+          { to: '/complaints/new', label: 'Report Plant Issue', icon: PlusCircle },
         ]
       : []),
     ...(role === 'admin'
       ? [
-          { to: '/admin', label: 'Admin Command', icon: Settings },
-          { to: '/employee', label: 'All Complaints', icon: FileText },
-          { to: '/complaints/new', label: 'File Complaint', icon: PlusCircle },
+          { to: '/admin', label: 'Admin Command Center', icon: Settings },
+          { to: '/employee', label: 'All Plant Incidents', icon: FileText },
         ]
       : []),
   ];

@@ -167,7 +167,7 @@ export const ComplaintDetail: React.FC = () => {
           className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Complaints</span>
+          <span>Back to Incidents</span>
         </Link>
 
         <span className="text-xs text-slate-400 font-mono">
