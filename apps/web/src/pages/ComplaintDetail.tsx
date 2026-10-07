@@ -28,7 +28,10 @@ import {
   Image as ImageIcon,
   Maximize2,
   X,
+  Wrench,
+  Zap,
 } from 'lucide-react';
+import { LocationMap } from '../components/common/LocationMap.js';
 
 export const ComplaintDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,9 +45,7 @@ export const ComplaintDetail: React.FC = () => {
   const [showImageModal, setShowImageModal] = useState(false);
 
   // Assignment state
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [assigneeId, setAssigneeId] = useState('');
-  const [assignNote, setAssignNote] = useState('');
 
   const { data: complaint, isLoading, error } = useQuery({
     queryKey: ['complaint', id],
@@ -78,15 +79,40 @@ export const ComplaintDetail: React.FC = () => {
     mutationFn: (data: { assigned_to: string; note: string }) =>
       api.complaints.assign(id!, data),
     onSuccess: () => {
-      setShowAssignModal(false);
       setAssigneeId('');
-      setAssignNote('');
       queryClient.invalidateQueries({ queryKey: ['complaint', id] });
+      queryClient.invalidateQueries({ queryKey: ['complaints'] });
     },
     onError: (err: any) => {
       setTransitionError(err.message || 'Assignment failed.');
     },
   });
+
+  const handleQuickAssign = (workerId: string) => {
+    if (!workerId) return;
+    assignMutation.mutate({
+      assigned_to: workerId,
+      note: 'Assigned via rapid management controls',
+    });
+  };
+
+  const handleQuickInProgress = () => {
+    if (!complaint) return;
+    transitionMutation.mutate({
+      new_status: 'in_progress',
+      note: transitionNote || 'Technician dispatched and work commenced',
+      expected_version: complaint.version,
+    });
+  };
+
+  const handleQuickResolve = () => {
+    if (!complaint) return;
+    transitionMutation.mutate({
+      new_status: 'resolved',
+      note: transitionNote || 'Work verified and incident resolved',
+      expected_version: complaint.version,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -132,15 +158,6 @@ export const ComplaintDetail: React.FC = () => {
     });
   };
 
-  const handleAssignSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!assigneeId) return;
-    assignMutation.mutate({
-      assigned_to: assigneeId,
-      note: assignNote,
-    });
-  };
-
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Back button & top meta */}
@@ -166,17 +183,8 @@ export const ComplaintDetail: React.FC = () => {
             <PriorityBadge priority={complaint.priority} />
           </div>
 
-          {/* Quick Actions (Assign / Transition) */}
-          <div className="flex items-center space-x-2">
-            {userRole === 'admin' && (
-              <button
-                onClick={() => setShowAssignModal(true)}
-                className="inline-flex items-center space-x-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>{complaint.assigned_to ? 'Reassign' : 'Assign'}</span>
-              </button>
-            )}
+          <div className="text-xs text-slate-400">
+            Filed: {new Date(complaint.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
           </div>
         </div>
 
@@ -191,37 +199,32 @@ export const ComplaintDetail: React.FC = () => {
         {/* Incident Image Evidence & Live Location Cards */}
         {(complaint.image_url || complaint.location_lat || complaint.location_address) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-            {/* Live Location Card */}
+            {/* Live Location Card with Interactive OpenStreetMap */}
             {(complaint.location_lat || complaint.location_address) && (
-              <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-2">
+              <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2 text-emerald-800 font-bold text-xs uppercase tracking-wider">
                     <MapPin className="w-4 h-4 text-emerald-600" />
-                    <span>Incident Geolocation</span>
+                    <span>Live Incident Location Map</span>
                   </div>
-                  {complaint.location_lat && complaint.location_lng && (
-                    <a
-                      href={`https://www.google.com/maps?q=${complaint.location_lat},${complaint.location_lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center space-x-1 text-xs font-semibold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded-md border border-emerald-200 transition-colors shadow-sm"
-                    >
-                      <span>Open Maps</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                  {complaint.location_address && (
+                    <span className="text-[11px] font-semibold text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-200 truncate max-w-[180px]">
+                      {complaint.location_address}
+                    </span>
                   )}
                 </div>
 
-                {complaint.location_address && (
-                  <p className="text-xs font-semibold text-slate-800">
-                    {complaint.location_address}
-                  </p>
-                )}
-
-                {complaint.location_lat && complaint.location_lng && (
-                  <div className="flex items-center space-x-3 text-[11px] font-mono text-emerald-900 bg-white/80 p-2 rounded-lg border border-emerald-100">
-                    <span>Lat: {complaint.location_lat.toFixed(6)}°</span>
-                    <span>Lng: {complaint.location_lng.toFixed(6)}°</span>
+                {complaint.location_lat && complaint.location_lng ? (
+                  <LocationMap
+                    lat={complaint.location_lat}
+                    lng={complaint.location_lng}
+                    address={complaint.location_address}
+                    height="200px"
+                    title={`Location for ${complaint.title}`}
+                  />
+                ) : (
+                  <div className="p-3 bg-white rounded-lg border border-emerald-100 text-xs text-emerald-800">
+                    <strong>Physical Landmark:</strong> {complaint.location_address}
                   </div>
                 )}
               </div>
@@ -300,13 +303,34 @@ export const ComplaintDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* State Machine Transition Actions Card */}
-      {allowedForRole.length > 0 && (
-        <div className="bg-brand-50/60 border border-brand-200 rounded-2xl p-5 shadow-sm space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-brand-900 flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-brand-600" />
-            Available Lifecycle Transitions (Optimistic Lock v{complaint.version})
-          </h3>
+      {/* Rapid Worker Assignment & Fast Resolution Hub */}
+      {userRole === 'admin' ? (
+        <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-indigo-950 flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-indigo-600" />
+                <span>Specialist Worker Assignment & Fast Resolution</span>
+              </h3>
+              <p className="text-xs text-indigo-700 mt-0.5">
+                Assign skilled workers and advance incident resolution in 1 click.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500">Current Assignee:</span>
+              {complaint.assigned_to ? (
+                <span className="px-2.5 py-1 bg-white border border-indigo-200 rounded-lg text-xs font-bold text-indigo-900 shadow-sm flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-indigo-600" />
+                  {complaint.assigned_to.full_name}
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold border border-amber-200">
+                  ⚠️ Unassigned
+                </span>
+              )}
+            </div>
+          </div>
 
           {transitionError && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center space-x-2">
@@ -315,111 +339,99 @@ export const ComplaintDetail: React.FC = () => {
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            {allowedForRole.map((nextStatus) => (
-              <button
-                key={nextStatus}
-                onClick={() => setSelectedNextStatus(nextStatus)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all ${
-                  selectedNextStatus === nextStatus
-                    ? 'bg-brand-700 text-white ring-2 ring-brand-500'
-                    : 'bg-white hover:bg-brand-100 text-slate-800 border border-slate-200'
-                }`}
+          {/* Controls Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            {/* Quick Worker Select */}
+            <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-indigo-200 shadow-sm">
+              <UserPlus className="w-4 h-4 text-indigo-600 shrink-0 ml-1" />
+              <select
+                value={assigneeId || complaint.assigned_to?.id || ''}
+                onChange={(e) => {
+                  setAssigneeId(e.target.value);
+                  handleQuickAssign(e.target.value);
+                }}
+                disabled={assignMutation.isPending}
+                className="w-full text-xs font-semibold text-slate-800 bg-transparent outline-none cursor-pointer"
               >
-                Transition to: <strong>{nextStatus.replace('_', ' ')}</strong>
-              </button>
-            ))}
-          </div>
-
-          {selectedNextStatus && (
-            <div className="mt-3 p-4 bg-white rounded-xl border border-brand-200 space-y-3">
-              <label className="block text-xs font-semibold text-slate-700">
-                Reason / Resolution Note (recorded in immutable status history)
-              </label>
-              <input
-                type="text"
-                value={transitionNote}
-                onChange={(e) => setTransitionNote(e.target.value)}
-                placeholder="Brief reason for transition (e.g. Investigation completed and verified)..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
-              />
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={() => setSelectedNextStatus(null)}
-                  className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleExecuteTransition(selectedNextStatus)}
-                  disabled={transitionMutation.isPending}
-                  className="px-4 py-1.5 text-xs bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm disabled:opacity-50"
-                >
-                  {transitionMutation.isPending ? 'Processing...' : 'Confirm Transition'}
-                </button>
-              </div>
+                <option value="">⚡ Assign Worker / Field Specialist...</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.full_name} ({u.role})
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* Assignment Modal */}
-      {showAssignModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <h3 className="text-base font-bold text-slate-900">Assign Complaint</h3>
-            <form onSubmit={handleAssignSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                  Assignee
-                </label>
-                <select
-                  required
-                  value={assigneeId}
-                  onChange={(e) => setAssigneeId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white outline-none"
-                >
-                  <option value="">Select Staff Member...</option>
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.full_name} ({u.role})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                  Assignment Note
-                </label>
-                <input
-                  type="text"
-                  value={assignNote}
-                  onChange={(e) => setAssignNote(e.target.value)}
-                  placeholder="Task instructions..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2">
+            {/* Quick Resolution Buttons */}
+            <div className="flex items-center gap-2">
+              {currentStatus !== 'in_progress' && currentStatus !== 'resolved' && currentStatus !== 'closed' && (
                 <button
                   type="button"
-                  onClick={() => setShowAssignModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+                  onClick={handleQuickInProgress}
+                  disabled={transitionMutation.isPending}
+                  className="flex-1 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
                 >
-                  Cancel
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Start Work (In Progress)</span>
                 </button>
+              )}
+
+              {currentStatus !== 'resolved' && currentStatus !== 'closed' && (
                 <button
-                  type="submit"
-                  disabled={assignMutation.isPending}
-                  className="px-4 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-lg"
+                  type="button"
+                  onClick={handleQuickResolve}
+                  disabled={transitionMutation.isPending}
+                  className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
                 >
-                  {assignMutation.isPending ? 'Assigning...' : 'Confirm Assignment'}
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Mark Resolved ✓</span>
                 </button>
-              </div>
-            </form>
+              )}
+
+              {currentStatus === 'resolved' && (
+                <button
+                  type="button"
+                  onClick={() => handleExecuteTransition('closed')}
+                  disabled={transitionMutation.isPending}
+                  className="flex-1 py-2.5 px-3 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <span>Close Ticket 🔒</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Note Input */}
+          <div className="flex items-center gap-2 bg-white/90 p-2 rounded-xl border border-indigo-100">
+            <span className="text-[11px] font-semibold text-slate-500 shrink-0">Note (Optional):</span>
+            <input
+              type="text"
+              value={transitionNote}
+              onChange={(e) => setTransitionNote(e.target.value)}
+              placeholder="e.g. Technician replaced hardware components and verified connectivity..."
+              className="w-full text-xs text-slate-800 bg-transparent outline-none"
+            />
           </div>
         </div>
+      ) : (
+        /* Employee Actions: Reopen if resolved */
+        currentStatus === 'resolved' && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-bold text-amber-900">Is this incident still not resolved?</h4>
+              <p className="text-xs text-amber-700">You can reopen this complaint to have staff review it again.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleExecuteTransition('reopened')}
+              disabled={transitionMutation.isPending}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center gap-1.5 shrink-0"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reopen Complaint</span>
+            </button>
+          </div>
+        )
       )}
 
       {/* Tabs: Timeline vs Discussion vs Attachments */}

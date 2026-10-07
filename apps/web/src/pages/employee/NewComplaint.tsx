@@ -20,6 +20,7 @@ import {
   Sparkles,
   RefreshCw,
 } from 'lucide-react';
+import { LocationMap } from '../../components/common/LocationMap.js';
 
 export const NewComplaint: React.FC = () => {
   const navigate = useNavigate();
@@ -425,6 +426,17 @@ export const NewComplaint: React.FC = () => {
                       {coords.accuracy ? `± ${Math.round(coords.accuracy)}m` : 'High'}
                     </span>
                   </div>
+                </div>
+
+                {/* Live OpenStreetMap Interactive Map */}
+                <div className="pt-1">
+                  <LocationMap
+                    lat={coords.lat}
+                    lng={coords.lng}
+                    address={locationAddress || 'Incident GPS Coordinates'}
+                    height="190px"
+                    title="Live Location Map"
+                  />
                 </div>
               </div>
             )}

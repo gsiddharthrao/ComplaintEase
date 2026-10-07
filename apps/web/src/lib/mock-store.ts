@@ -39,6 +39,54 @@ export const DEMO_PROFILES: Record<string, { user: any; profile: Profile }> = {
       updated_at: '2026-10-01T08:00:00.000Z',
     },
   },
+  'priya.it@demo.com': {
+    user: { id: 'wwwwwwww-1111-1111-1111-111111111111', email: 'priya.it@demo.com' },
+    profile: {
+      id: 'wwwwwwww-1111-1111-1111-111111111111',
+      full_name: 'Priya Sharma (IT & Network Specialist)',
+      role: 'employee',
+      department_id: '11111111-1111-1111-1111-111111111111',
+      avatar_url: null,
+      created_at: '2026-10-01T08:00:00.000Z',
+      updated_at: '2026-10-01T08:00:00.000Z',
+    },
+  },
+  'ravi.facilities@demo.com': {
+    user: { id: 'wwwwwwww-2222-2222-2222-222222222222', email: 'ravi.facilities@demo.com' },
+    profile: {
+      id: 'wwwwwwww-2222-2222-2222-222222222222',
+      full_name: 'Ravi Kumar (Facilities & HVAC Tech)',
+      role: 'employee',
+      department_id: '44444444-4444-4444-4444-444444444444',
+      avatar_url: null,
+      created_at: '2026-10-01T08:00:00.000Z',
+      updated_at: '2026-10-01T08:00:00.000Z',
+    },
+  },
+  'vikram.electrician@demo.com': {
+    user: { id: 'wwwwwwww-3333-3333-3333-333333333333', email: 'vikram.electrician@demo.com' },
+    profile: {
+      id: 'wwwwwwww-3333-3333-3333-333333333333',
+      full_name: 'Vikram Singh (Field Electrician)',
+      role: 'employee',
+      department_id: '44444444-4444-4444-4444-444444444444',
+      avatar_url: null,
+      created_at: '2026-10-01T08:00:00.000Z',
+      updated_at: '2026-10-01T08:00:00.000Z',
+    },
+  },
+  'ananya.hr@demo.com': {
+    user: { id: 'wwwwwwww-4444-4444-4444-444444444444', email: 'ananya.hr@demo.com' },
+    profile: {
+      id: 'wwwwwwww-4444-4444-4444-444444444444',
+      full_name: 'Ananya Roy (HR Operations Specialist)',
+      role: 'employee',
+      department_id: '22222222-2222-2222-2222-222222222222',
+      avatar_url: null,
+      created_at: '2026-10-01T08:00:00.000Z',
+      updated_at: '2026-10-01T08:00:00.000Z',
+    },
+  },
 };
 
 const INITIAL_DEPARTMENTS: Department[] = [
@@ -512,11 +560,37 @@ class MockStore {
 
     const assignee = Object.values(DEMO_PROFILES).find((p) => p.profile.id === data.assigned_to)?.profile;
     comp.assigned_to = assignee ? { id: assignee.id, full_name: assignee.full_name } : null;
+    comp.updated_at = new Date().toISOString();
 
+    const oldStatus = comp.status;
     if (comp.status === 'submitted' || comp.status === 'under_review') {
       comp.status = 'assigned';
       comp.version += 1;
     }
+
+    comp.status_history = comp.status_history || [];
+    comp.status_history.push({
+      id: crypto.randomUUID(),
+      complaint_id: id,
+      from_status: oldStatus,
+      to_status: comp.status,
+      changed_by: currentProfile?.id || 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+      note: data.note || `Assigned to ${assignee?.full_name || 'worker'}`,
+      created_at: new Date().toISOString(),
+      changer: { full_name: currentProfile?.full_name || 'Admin' },
+    });
+
+    // Notify employee of worker assignment
+    this.notifications.unshift({
+      id: crypto.randomUUID(),
+      user_id: comp.created_by,
+      complaint_id: id,
+      type: 'assigned',
+      title: 'Worker Assigned',
+      body: `${assignee?.full_name || 'A technician'} has been assigned to work on "${comp.title}".`,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    });
 
     return { message: 'Assigned successfully', assignee };
   }

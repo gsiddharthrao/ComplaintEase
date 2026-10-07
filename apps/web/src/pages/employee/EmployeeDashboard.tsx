@@ -4,13 +4,15 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api-client.js';
 import { StatusBadge } from '../../components/complaints/StatusBadge.js';
 import { PriorityBadge } from '../../components/complaints/PriorityBadge.js';
-import { PlusCircle, Search, Filter, AlertCircle, Clock, ChevronRight, MapPin, Camera } from 'lucide-react';
+import { PlusCircle, Search, Filter, AlertCircle, Clock, ChevronRight, MapPin, Camera, X } from 'lucide-react';
+import { LocationMap } from '../../components/common/LocationMap.js';
 import type { ComplaintStatus, ComplaintPriority } from '@complaintease/shared';
 
 export const EmployeeDashboard: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ComplaintStatus | ''>('');
   const [priorityFilter, setPriorityFilter] = useState<ComplaintPriority | ''>('');
+  const [mapModal, setMapModal] = useState<{ lat: number; lng: number; address?: string | null; title: string } | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['complaints', { search, status: statusFilter, priority: priorityFilter }],
@@ -152,12 +154,31 @@ export const EmployeeDashboard: React.FC = () => {
                   {item.assigned_to && (
                     <span>Assigned to: <strong className="text-slate-600">{item.assigned_to.full_name}</strong></span>
                   )}
-                  {item.location_lat != null && (
+                  {item.location_lat != null && item.location_lng != null ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMapModal({
+                          lat: item.location_lat!,
+                          lng: item.location_lng!,
+                          address: item.location_address,
+                          title: item.title,
+                        });
+                      }}
+                      className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 transition-colors shadow-xs"
+                      title="Click to view live interactive map"
+                    >
+                      <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                      <span className="truncate max-w-[150px]">{item.location_address || 'View on Map'}</span>
+                    </button>
+                  ) : item.location_address ? (
                     <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                       <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
-                      <span className="truncate max-w-[150px]">{item.location_address || 'Geotagged'}</span>
+                      <span className="truncate max-w-[150px]">{item.location_address}</span>
                     </span>
-                  )}
+                  ) : null}
                   {item.image_url && (
                     <span className="inline-flex items-center gap-1 text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
                       <Camera className="w-3 h-3 text-blue-600 shrink-0" />
@@ -177,6 +198,44 @@ export const EmployeeDashboard: React.FC = () => {
               <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-brand-600 shrink-0 transition-transform group-hover:translate-x-0.5" />
             </Link>
           ))}
+        </div>
+      )}
+
+      {/* Interactive Map Modal for Employee */}
+      {mapModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+          onClick={() => setMapModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl border border-slate-700 animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-sm font-bold text-slate-900 truncate max-w-md">
+                  Incident Pin Location: {mapModal.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMapModal(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 bg-slate-100">
+              <LocationMap
+                lat={mapModal.lat}
+                lng={mapModal.lng}
+                address={mapModal.address}
+                height="320px"
+                title={mapModal.title}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

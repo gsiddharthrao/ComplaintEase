@@ -23,7 +23,10 @@ import {
   ArrowUpRight,
   Clock,
   FileText,
+  Wrench,
+  Zap,
 } from 'lucide-react';
+import { LocationMap } from '../../components/common/LocationMap.js';
 import type { UserRole, ComplaintStatus } from '@complaintease/shared';
 
 export const AdminPanel: React.FC = () => {
@@ -115,6 +118,30 @@ export const AdminPanel: React.FC = () => {
     mutationFn: ({ id, role, department_id }: { id: string; role: UserRole; department_id?: string | null }) =>
       api.admin.updateUserRole(id, { role, department_id }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+  });
+
+  // Fast direct worker assignment
+  const quickAssignMutation = useMutation({
+    mutationFn: ({ complaintId, workerId }: { complaintId: string; workerId: string }) =>
+      api.complaints.assign(complaintId, { assigned_to: workerId, note: 'Quick-assigned by administrator' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-complaints-feed'] });
+      queryClient.invalidateQueries({ queryKey: ['complaints'] });
+    },
+  });
+
+  // Fast direct status transition
+  const quickTransitionMutation = useMutation({
+    mutationFn: ({ complaintId, newStatus, version }: { complaintId: string; newStatus: ComplaintStatus; version: number }) =>
+      api.complaints.transition(complaintId, {
+        new_status: newStatus,
+        note: `Status updated to ${newStatus} by administrator`,
+        expected_version: version,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-complaints-feed'] });
+      queryClient.invalidateQueries({ queryKey: ['complaints'] });
+    },
   });
 
   // 4. Audit logs query
@@ -267,11 +294,11 @@ export const AdminPanel: React.FC = () => {
                     return (
                       <div
                         key={c.id}
-                        className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-md transition-shadow relative"
+                        className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-shadow relative space-y-4"
                       >
-                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                          {/* Left Column: Complaint Details */}
-                          <div className="flex-1 space-y-2.5 min-w-0">
+                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+                          {/* Left Column: Complaint Details & Map */}
+                          <div className="flex-1 space-y-3 min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <StatusBadge status={c.status} />
                               <PriorityBadge priority={c.priority} />
@@ -308,92 +335,50 @@ export const AdminPanel: React.FC = () => {
                             <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1 border-t border-slate-100">
                               <span className="flex items-center gap-1.5">
                                 <Users className="w-3.5 h-3.5 text-slate-400" />
-                                Reported by:{' '}
+                                Reporter:{' '}
                                 <strong className="text-slate-700">
                                   {c.creator?.full_name || 'Anonymous Employee'}
                                 </strong>
                               </span>
-                              {c.assigned_to && (
-                                <span className="flex items-center gap-1.5">
-                                  Assigned to:{' '}
-                                  <strong className="text-slate-700">
-                                    {c.assigned_to.full_name}
-                                  </strong>
+                              {c.assigned_to ? (
+                                <span className="flex items-center gap-1.5 text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                                  <Wrench className="w-3 h-3 text-indigo-600" />
+                                  Assigned: {c.assigned_to.full_name}
+                                </span>
+                              ) : (
+                                <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-semibold text-[11px]">
+                                  ⚠️ Unassigned
                                 </span>
                               )}
-                              <span className="text-slate-400 text-[11px]">
-                                Version {c.version} • {c.comment_count || 0} comments
+                              <span className="text-slate-400 text-[11px] ml-auto">
+                                v{c.version} • {c.comment_count || 0} comments
                               </span>
                             </div>
-                          </div>
 
-                          {/* Right Column: Geolocation & Photo Evidence Box */}
-                          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:w-72 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-slate-100 lg:pl-4">
-                            {/* Geotag Card */}
-                            {hasLocation ? (
-                              <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl space-y-1.5 flex-1">
-                                <div className="flex items-center justify-between text-xs font-bold text-emerald-800">
-                                  <span className="flex items-center gap-1.5">
-                                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                                    GPS Geotag Verified
-                                  </span>
-                                  {c.location_lat != null && c.location_lng != null && (
-                                    <a
-                                      href={`https://www.google.com/maps?q=${c.location_lat},${c.location_lng}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-[11px] text-emerald-700 hover:text-emerald-900 font-semibold inline-flex items-center gap-0.5 underline"
-                                    >
-                                      <span>Maps</span>
-                                      <ExternalLink className="w-3 h-3" />
-                                    </a>
-                                  )}
-                                </div>
-                                {c.location_address && (
-                                  <p className="text-xs text-emerald-900 font-medium line-clamp-2">
-                                    {c.location_address}
-                                  </p>
-                                )}
-                                {c.location_lat != null && c.location_lng != null && (
-                                  <p className="text-[11px] font-mono text-emerald-700">
-                                    {c.location_lat.toFixed(5)}, {c.location_lng.toFixed(5)}
-                                  </p>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-400 flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-slate-300" />
-                                <span>No physical GPS tag attached</span>
+                            {/* Live Interactive Location Map */}
+                            {c.location_lat != null && c.location_lng != null && (
+                              <div className="pt-1">
+                                <LocationMap
+                                  lat={c.location_lat}
+                                  lng={c.location_lng}
+                                  address={c.location_address}
+                                  height="180px"
+                                  title={`Map location for ${c.title}`}
+                                />
                               </div>
                             )}
+                          </div>
 
+                          {/* Right Column: Photo Evidence */}
+                          <div className="flex flex-col gap-3 lg:w-72 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-slate-100 lg:pl-4">
                             {/* Photo Evidence Card */}
                             {hasImage ? (
-                              <div className="flex items-center gap-3 p-2.5 bg-blue-50/60 border border-blue-200/80 rounded-xl">
-                                <div
-                                  onClick={() =>
-                                    setLightboxImage({
-                                      url: c.image_url!,
-                                      title: c.title,
-                                    })
-                                  }
-                                  className="relative w-14 h-14 rounded-lg overflow-hidden border border-blue-300 shrink-0 cursor-pointer group"
-                                  title="Click to enlarge"
-                                >
-                                  <img
-                                    src={c.image_url!}
-                                    alt="Complaint Evidence"
-                                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                                  />
-                                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <Maximize2 className="w-4 h-4 text-white" />
-                                  </div>
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1 text-xs font-bold text-blue-900">
+                              <div className="flex flex-col gap-2 p-3 bg-blue-50/60 border border-blue-200/80 rounded-xl">
+                                <div className="flex items-center justify-between text-xs font-bold text-blue-900">
+                                  <span className="flex items-center gap-1">
                                     <Camera className="w-3.5 h-3.5 text-blue-600" />
-                                    <span>Photo Evidence</span>
-                                  </div>
+                                    Photo Evidence
+                                  </span>
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -402,25 +387,136 @@ export const AdminPanel: React.FC = () => {
                                         title: c.title,
                                       })
                                     }
-                                    className="text-[11px] text-blue-700 hover:text-blue-900 underline font-medium mt-0.5"
+                                    className="text-[11px] text-blue-700 hover:text-blue-900 underline font-medium"
                                   >
-                                    Click to inspect photo
+                                    Enlarge
                                   </button>
+                                </div>
+                                <div
+                                  onClick={() =>
+                                    setLightboxImage({
+                                      url: c.image_url!,
+                                      title: c.title,
+                                    })
+                                  }
+                                  className="relative w-full h-32 rounded-lg overflow-hidden border border-blue-300 cursor-pointer group"
+                                  title="Click to enlarge photo"
+                                >
+                                  <img
+                                    src={c.image_url!}
+                                    alt="Complaint Evidence"
+                                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                  />
+                                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Maximize2 className="w-5 h-5 text-white" />
+                                  </div>
                                 </div>
                               </div>
                             ) : (
-                              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-400 flex items-center gap-1.5">
+                              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-400 flex items-center gap-1.5">
                                 <Camera className="w-3.5 h-3.5 text-slate-300" />
-                                <span>No photo evidence attached</span>
+                                <span>No photo attached</span>
                               </div>
                             )}
 
-                            {/* Review Link Button */}
+                            {/* Physical Landmark note if no GPS */}
+                            {c.location_lat == null && c.location_address && (
+                              <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900">
+                                <span className="font-bold block text-[10px] uppercase text-emerald-700">Landmark</span>
+                                {c.location_address}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* RAPID WORKER ASSIGNMENT & 1-CLICK RESOLUTION BAR */}
+                        <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
+                          {/* Quick Worker Assignment Dropdown */}
+                          <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+                            <Wrench className="w-4 h-4 text-indigo-600 shrink-0" />
+                            <select
+                              value={c.assigned_to?.id || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val) quickAssignMutation.mutate({ complaintId: c.id, workerId: val });
+                              }}
+                              disabled={quickAssignMutation.isPending}
+                              className="w-full text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:border-brand-500 shadow-sm transition-colors"
+                            >
+                              <option value="">
+                                ⚡ {c.assigned_to ? `Assigned: ${c.assigned_to.full_name} (Reassign ▾)` : 'Assign Specialist / Technician...'}
+                              </option>
+                              {users.map((u) => (
+                                <option key={u.id} value={u.id}>
+                                  {u.full_name} ({u.role})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Quick 1-Click Status Progression Buttons */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            {c.status !== 'in_progress' && c.status !== 'resolved' && c.status !== 'closed' && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  quickTransitionMutation.mutate({
+                                    complaintId: c.id,
+                                    newStatus: 'in_progress',
+                                    version: c.version,
+                                  })
+                                }
+                                disabled={quickTransitionMutation.isPending}
+                                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1"
+                                title="Move status to In Progress"
+                              >
+                                <Zap className="w-3 h-3" />
+                                <span>Start Work</span>
+                              </button>
+                            )}
+
+                            {c.status !== 'resolved' && c.status !== 'closed' && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  quickTransitionMutation.mutate({
+                                    complaintId: c.id,
+                                    newStatus: 'resolved',
+                                    version: c.version,
+                                  })
+                                }
+                                disabled={quickTransitionMutation.isPending}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1"
+                                title="Mark as Resolved"
+                              >
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Resolve ✓</span>
+                              </button>
+                            )}
+
+                            {c.status === 'resolved' && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  quickTransitionMutation.mutate({
+                                    complaintId: c.id,
+                                    newStatus: 'closed',
+                                    version: c.version,
+                                  })
+                                }
+                                disabled={quickTransitionMutation.isPending}
+                                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm transition-colors"
+                              >
+                                <span>Close 🔒</span>
+                              </button>
+                            )}
+
                             <Link
                               to={`/complaints/${c.id}`}
-                              className="w-full text-center py-2 px-3 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+                              className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-1"
                             >
-                              Inspect Ticket & Progress →
+                              <span>Full View</span>
+                              <ArrowUpRight className="w-3.5 h-3.5" />
                             </Link>
                           </div>
                         </div>
