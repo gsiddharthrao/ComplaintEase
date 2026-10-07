@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import type { Profile } from '@complaintease/shared';
 import { supabase } from '../lib/supabase.js';
 import { api } from '../lib/api-client.js';
-import { DEMO_PROFILES } from '../lib/mock-store.js';
+import { mockStore } from '../lib/mock-store.js';
 
 interface AuthContextType {
   user: User | null;
@@ -28,10 +28,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await api.auth.me();
       setProfile(data.profile);
     } catch (err) {
-      // If server unreachable but demo user in local storage
+      // If server unreachable but local user in storage
       const stored = localStorage.getItem('complaintease_demo_user');
-      if (stored && DEMO_PROFILES[stored]) {
-        setProfile(DEMO_PROFILES[stored].profile);
+      if (stored) {
+        const u = mockStore.getUserByEmail(stored);
+        if (u) {
+          setProfile(u.profile);
+          setUser(u.user as any);
+        }
       } else {
         console.warn('Could not fetch user profile:', err);
       }
@@ -39,14 +43,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Check local storage for active demo user session first
+    // Check local storage for active user session first
     const storedDemo = localStorage.getItem('complaintease_demo_user');
-    if (storedDemo && DEMO_PROFILES[storedDemo]) {
-      const demo = DEMO_PROFILES[storedDemo];
-      setUser(demo.user);
-      setProfile(demo.profile);
-      setLoading(false);
-      return;
+    if (storedDemo) {
+      const u = mockStore.getUserByEmail(storedDemo);
+      if (u) {
+        setUser(u.user as any);
+        setProfile(u.profile);
+        setLoading(false);
+        return;
+      }
     }
 
     // Try live Supabase session
@@ -88,18 +94,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
-    const normEmail = email.toLowerCase();
-    const demo = DEMO_PROFILES[normEmail];
+    const normEmail = email.toLowerCase().trim();
 
-    // 1. Instant login for demo profiles (Alex Employee, Sarah IT Head, Marcus Admin)
-    if (demo) {
+    // 1. Check local persistent store (supports baseline accounts + all dynamically registered users)
+    try {
+      const authResult = mockStore.authenticate(normEmail, password);
       localStorage.setItem('complaintease_demo_user', normEmail);
-      setUser(demo.user);
-      setProfile(demo.profile);
+      setUser(authResult.user as any);
+      setProfile(authResult.profile);
       return;
+    } catch (mockErr: any) {
+      if (mockErr.message?.includes('Incorrect password')) {
+        throw mockErr;
+      }
+      // If user not in local store, try Supabase auth
     }
 
-    // 2. Real Supabase Auth login for custom registered accounts
+    // 2. Real Supabase Auth login fallback
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     localStorage.removeItem('complaintease_demo_user');

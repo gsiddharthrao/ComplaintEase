@@ -25,8 +25,10 @@ import {
   FileText,
   Wrench,
   Zap,
+  RotateCcw,
 } from 'lucide-react';
 import { LocationMap } from '../../components/common/LocationMap.js';
+import { mockStore } from '../../lib/mock-store.js';
 import type { UserRole, ComplaintStatus } from '@complaintease/shared';
 
 export const AdminPanel: React.FC = () => {
@@ -154,14 +156,31 @@ export const AdminPanel: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-          <ShieldAlert className="w-6 h-6 text-rose-600" />
-          Enterprise Administration Control
-        </h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Live incident oversight, GPS geotag feeds, department management, and immutable audit logs.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            <ShieldAlert className="w-6 h-6 text-rose-600" />
+            Plant Operations Command Center
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Real-time plant incident oversight, GPS geotag feeds, rapid specialist assignment, and audit logs.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm('Reset local incident database to clean state (0 incidents)?')) {
+              mockStore.resetStore();
+              queryClient.invalidateQueries();
+            }
+          }}
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 text-xs font-semibold rounded-lg border border-slate-200 transition-colors shrink-0"
+          title="Clear all recorded incidents back to zero clean slate"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span>Reset Local Database</span>
+        </button>
       </div>
 
       {/* Tabs */}
@@ -280,9 +299,9 @@ export const AdminPanel: React.FC = () => {
               ) : filteredComplaints.length === 0 ? (
                 <div className="p-12 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
                   <MapPin className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                  <h3 className="text-sm font-semibold text-slate-700">No incident complaints found</h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Try relaxing the search keyword or status filter.
+                  <h3 className="text-sm font-semibold text-slate-700">No plant incidents reported yet</h3>
+                  <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                    When plant operators report equipment breakdowns or safety hazards, they will appear live here in real-time.
                   </p>
                 </div>
               ) : (

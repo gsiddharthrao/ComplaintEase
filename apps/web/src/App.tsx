@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext.js';
@@ -41,6 +41,21 @@ const queryClient = new QueryClient({
   },
 });
 
+const RealtimeSyncListener: React.FC = () => {
+  useEffect(() => {
+    const handleSync = () => {
+      queryClient.invalidateQueries();
+    };
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('complaintease_storage_sync', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('complaintease_storage_sync', handleSync);
+    };
+  }, []);
+  return null;
+};
+
 const PageLoader = () => (
   <div className="min-h-[50vh] flex items-center justify-center">
     <div className="w-8 h-8 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -50,6 +65,7 @@ const PageLoader = () => (
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <RealtimeSyncListener />
       <AuthProvider>
         <BrowserRouter>
           <Suspense fallback={<PageLoader />}>

@@ -21,11 +21,7 @@ function isDemoActive(): boolean {
 }
 
 function getCurrentDemoProfile(): Profile | undefined {
-  const email = localStorage.getItem('complaintease_demo_user');
-  if (email && DEMO_PROFILES[email]) {
-    return DEMO_PROFILES[email].profile;
-  }
-  return undefined;
+  return mockStore.getCurrentProfile();
 }
 
 async function fetchWithAuth<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -69,19 +65,25 @@ export const api = {
       try {
         return await fetchWithAuth<{ id: string; email: string; profile: Profile }>('/auth/me');
       } catch (err) {
-        const fallback = DEMO_PROFILES['employee@demo.com'];
-        return { id: fallback.user.id, email: fallback.user.email, profile: fallback.profile };
+        const fallback = mockStore.getCurrentProfile() || mockStore.getUserByEmail('employee@demo.com')?.profile;
+        if (fallback) {
+          return { id: fallback.id, email: 'employee@demo.com', profile: fallback };
+        }
+        throw err;
       }
     },
     register: async (data: any) => {
+      // Register in local persistent store so account can immediately log in locally
+      const localResult = mockStore.registerUser(data);
       try {
-        return await fetchWithAuth<{ id: string; email: string; message: string }>('/auth/register', {
+        await fetchWithAuth<{ id: string; email: string; message: string }>('/auth/register', {
           method: 'POST',
           body: JSON.stringify(data),
         });
       } catch (err) {
-        return { id: crypto.randomUUID(), email: data.email, message: 'Account registered (demo mode)' };
+        // Ignore backend unreachable error in local mode
       }
+      return localResult;
     },
   },
   complaints: {

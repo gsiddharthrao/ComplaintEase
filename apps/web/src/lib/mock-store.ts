@@ -11,24 +11,20 @@ import type {
   Category,
   Profile,
   ComplaintStatus,
+  UserRole,
 } from '@complaintease/shared';
 import { ALLOWED_TRANSITIONS } from '@complaintease/shared';
 
-export const DEMO_PROFILES: Record<string, { user: any; profile: Profile }> = {
-  'employee@demo.com': {
-    user: { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', email: 'employee@demo.com' },
-    profile: {
-      id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-      full_name: 'Alex Rivera (Plant Shift Operator)',
-      role: 'employee',
-      department_id: '11111111-1111-1111-1111-111111111111',
-      avatar_url: null,
-      created_at: '2026-10-01T08:00:00.000Z',
-      updated_at: '2026-10-01T08:00:00.000Z',
-    },
-  },
+export interface StoredUser {
+  user: { id: string; email: string };
+  password: string;
+  profile: Profile;
+}
+
+export const BASELINE_USERS: Record<string, StoredUser> = {
   'admin@demo.com': {
     user: { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', email: 'admin@demo.com' },
+    password: 'Demo1234!',
     profile: {
       id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
       full_name: 'Marcus Vance (Plant Operations Director)',
@@ -39,8 +35,22 @@ export const DEMO_PROFILES: Record<string, { user: any; profile: Profile }> = {
       updated_at: '2026-10-01T08:00:00.000Z',
     },
   },
+  'employee@demo.com': {
+    user: { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', email: 'employee@demo.com' },
+    password: 'Demo1234!',
+    profile: {
+      id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      full_name: 'Alex Rivera (Plant Shift Operator)',
+      role: 'employee',
+      department_id: '11111111-1111-1111-1111-111111111111',
+      avatar_url: null,
+      created_at: '2026-10-01T08:00:00.000Z',
+      updated_at: '2026-10-01T08:00:00.000Z',
+    },
+  },
   'priya.it@demo.com': {
     user: { id: 'wwwwwwww-1111-1111-1111-111111111111', email: 'priya.it@demo.com' },
+    password: 'Demo1234!',
     profile: {
       id: 'wwwwwwww-1111-1111-1111-111111111111',
       full_name: 'Priya Sharma (SCADA & Automation Lead)',
@@ -53,6 +63,7 @@ export const DEMO_PROFILES: Record<string, { user: any; profile: Profile }> = {
   },
   'ravi.facilities@demo.com': {
     user: { id: 'wwwwwwww-2222-2222-2222-222222222222', email: 'ravi.facilities@demo.com' },
+    password: 'Demo1234!',
     profile: {
       id: 'wwwwwwww-2222-2222-2222-222222222222',
       full_name: 'Ravi Kumar (Boiler & Utilities Specialist)',
@@ -65,6 +76,7 @@ export const DEMO_PROFILES: Record<string, { user: any; profile: Profile }> = {
   },
   'vikram.electrician@demo.com': {
     user: { id: 'wwwwwwww-3333-3333-3333-333333333333', email: 'vikram.electrician@demo.com' },
+    password: 'Demo1234!',
     profile: {
       id: 'wwwwwwww-3333-3333-3333-333333333333',
       full_name: 'Vikram Singh (Industrial Electrical Lead)',
@@ -77,6 +89,7 @@ export const DEMO_PROFILES: Record<string, { user: any; profile: Profile }> = {
   },
   'ananya.hr@demo.com': {
     user: { id: 'wwwwwwww-4444-4444-4444-444444444444', email: 'ananya.hr@demo.com' },
+    password: 'Demo1234!',
     profile: {
       id: 'wwwwwwww-4444-4444-4444-444444444444',
       full_name: 'Ananya Roy (Industrial Safety & EHS Officer)',
@@ -88,6 +101,9 @@ export const DEMO_PROFILES: Record<string, { user: any; profile: Profile }> = {
     },
   },
 };
+
+// Re-export for compatibility with other files referencing DEMO_PROFILES
+export const DEMO_PROFILES: Record<string, { user: any; profile: Profile }> = BASELINE_USERS;
 
 const INITIAL_DEPARTMENTS: Department[] = [
   { id: '11111111-1111-1111-1111-111111111111', name: 'Plant Mechanical & Heavy Equipment', description: 'Hydraulics, compressors, stamping presses, and conveyor systems', head_id: null, created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-01T00:00:00.000Z' },
@@ -109,281 +125,257 @@ const INITIAL_CATEGORIES: Category[] = [
   { id: 'f1111111-1111-1111-1111-111111111111', name: 'General Plant Hazard / Near Miss', description: 'Loose catwalk guardrail, tripping hazard, overhead crane cable wear', department_id: null, created_at: '2026-10-01T00:00:00.000Z' },
 ];
 
-const INITIAL_COMPLAINTS: any[] = [
-  {
-    id: 'c1111111-0001-0000-0000-000000000001',
-    title: '500-Ton Hydraulic Press Primary Cylinder Pressure Loss',
-    description: 'Hydraulic stamping press #4 in Bay 3 suffering severe 180-bar pressure drops during compression stroke. Hydraulic fluid pooling on baseplate near manifold flange. Risk of line blowout and production line stall.',
-    category_id: 'a1111111-1111-1111-1111-111111111111',
-    department_id: '11111111-1111-1111-1111-111111111111',
-    created_by: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    status: 'submitted',
-    priority: 'critical',
-    location_lat: 28.535516,
-    location_lng: 77.391026,
-    location_address: 'Plant Sector B - Heavy Machinery Bay 4 (Press Station #4)',
-    image_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
-    created_at: '2026-10-07T14:30:00.000Z',
-    updated_at: '2026-10-07T14:30:00.000Z',
-    resolved_at: null,
-    version: 1,
-    assigned_to: null,
-    status_history: [
-      {
-        id: 'h1',
-        complaint_id: 'c1111111-0001-0000-0000-000000000001',
-        from_status: null,
-        to_status: 'submitted',
-        changed_by: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        note: 'Reported by shift operator with machine photo and GPS fix',
-        created_at: '2026-10-07T14:30:00.000Z',
-        changer: { full_name: 'Alex Rivera (Plant Shift Operator)' },
-      },
-    ],
-  },
-  {
-    id: 'c1111111-0002-0000-0000-000000000002',
-    title: '415V MCC Switchgear Feeder Breaker Tripping on Overcurrent',
-    description: 'Main 415V feeder breaker for Cooling Water Pump #2 tripped twice under 160A load. Thermal scan indicates 84C hot spot on terminal L2 busbar connector. Potential arc flash hazard if re-energized without inspection.',
-    category_id: 'b1111111-1111-1111-1111-111111111111',
-    department_id: '22222222-2222-2222-2222-222222222222',
-    created_by: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    status: 'under_review',
-    priority: 'high',
-    location_lat: 28.536120,
-    location_lng: 77.392410,
-    location_address: 'Substation Switchgear Room 2 - Feeder Panel MCC-B',
-    image_url: 'https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&w=800&q=80',
-    created_at: '2026-10-06T10:00:00.000Z',
-    updated_at: '2026-10-06T11:20:00.000Z',
-    resolved_at: null,
-    version: 2,
-    assigned_to: null,
-    status_history: [
-      {
-        id: 'h2a',
-        complaint_id: 'c1111111-0002-0000-0000-000000000002',
-        from_status: null,
-        to_status: 'submitted',
-        changed_by: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        note: 'Initial report filed after secondary breaker trip',
-        created_at: '2026-10-06T10:00:00.000Z',
-        changer: { full_name: 'Alex Rivera (Plant Shift Operator)' },
-      },
-      {
-        id: 'h2b',
-        complaint_id: 'c1111111-0002-0000-0000-000000000002',
-        from_status: 'submitted',
-        to_status: 'under_review',
-        changed_by: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-        note: 'Reviewing busbar thermal imaging scan and load curves',
-        created_at: '2026-10-06T11:20:00.000Z',
-        changer: { full_name: 'Marcus Vance (Plant Operations Director)' },
-      },
-    ],
-  },
-  {
-    id: 'c1111111-0003-0000-0000-000000000003',
-    title: '12-Bar Steam Header Flange Gasket Failure in Boiler House',
-    description: 'Superheated 12-bar steam escaping from 8-inch main header flange connection adjacent to deaerator tank. Hissing sound with visible high-velocity steam envelope. Sector isolated under LOTO lock.',
-    category_id: 'd1111111-1111-1111-1111-111111111111',
-    department_id: '44444444-4444-4444-4444-444444444444',
-    created_by: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    status: 'resolved',
-    priority: 'critical',
-    location_lat: 28.534890,
-    location_lng: 77.389950,
-    location_address: 'Boiler House Unit 1 - Mezzanine Level Header Joint #7',
-    image_url: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=800&q=80',
-    created_at: '2026-10-05T09:00:00.000Z',
-    updated_at: '2026-10-05T16:00:00.000Z',
-    resolved_at: '2026-10-05T16:00:00.000Z',
-    version: 4,
-    assigned_to: { id: 'wwwwwwww-2222-2222-2222-222222222222', full_name: 'Ravi Kumar (Boiler & Utilities Specialist)' },
-    status_history: [
-      {
-        id: 'h3a',
-        complaint_id: 'c1111111-0003-0000-0000-000000000003',
-        from_status: null,
-        to_status: 'submitted',
-        changed_by: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        note: 'Emergency steam leak logged with plant geotag',
-        created_at: '2026-10-05T09:00:00.000Z',
-        changer: { full_name: 'Alex Rivera (Plant Shift Operator)' },
-      },
-      {
-        id: 'h3b',
-        complaint_id: 'c1111111-0003-0000-0000-000000000003',
-        from_status: 'submitted',
-        to_status: 'under_review',
-        changed_by: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-        note: 'Emergency triage: LOTO tag out initiated',
-        created_at: '2026-10-05T09:15:00.000Z',
-        changer: { full_name: 'Marcus Vance (Plant Operations Director)' },
-      },
-      {
-        id: 'h3c',
-        complaint_id: 'c1111111-0003-0000-0000-000000000003',
-        from_status: 'under_review',
-        to_status: 'in_progress',
-        changed_by: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-        note: 'Utilities crew on-site with replacement spiral wound gasket',
-        created_at: '2026-10-05T11:00:00.000Z',
-        changer: { full_name: 'Marcus Vance (Plant Operations Director)' },
-      },
-      {
-        id: 'h3d',
-        complaint_id: 'c1111111-0003-0000-0000-000000000003',
-        from_status: 'in_progress',
-        to_status: 'resolved',
-        changed_by: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-        note: 'Flange repacked with high-temp graphite gasket, torqued to 350 Nm, and hydro-tested at 16 bar. Zero leakage.',
-        created_at: '2026-10-05T16:00:00.000Z',
-        changer: { full_name: 'Marcus Vance (Plant Operations Director)' },
-      },
-    ],
-  },
-  {
-    id: 'c1111111-0004-0000-0000-000000000004',
-    title: 'Raw Material Conveyor Belt #3 Drive Bearing Acoustic Vibration Exceeded',
-    description: 'Acoustic vibration monitor triggered continuous 7.8 mm/s RMS alarm on drive-end spherical roller bearing. Grease temperature reached 76C. Requires immediate lubrication repacking or bearing changeover before catastrophic seizure.',
-    category_id: 'a2222222-2222-2222-2222-222222222222',
-    department_id: '11111111-1111-1111-1111-111111111111',
-    created_by: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    status: 'in_progress',
-    priority: 'high',
-    location_lat: 28.537250,
-    location_lng: 77.393180,
-    location_address: 'Sector C - Bulk Handling Conveyor Gallery #3 (Head Pulley Drive)',
-    image_url: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=800&q=80',
-    created_at: '2026-10-07T08:00:00.000Z',
-    updated_at: '2026-10-07T11:00:00.000Z',
-    resolved_at: null,
-    version: 3,
-    assigned_to: { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', full_name: 'Marcus Vance (Plant Operations Director)' },
-    status_history: [
-      {
-        id: 'h4a',
-        complaint_id: 'c1111111-0004-0000-0000-000000000004',
-        from_status: null,
-        to_status: 'submitted',
-        changed_by: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        note: 'Vibration alert logged from telemetry feed',
-        created_at: '2026-10-07T08:00:00.000Z',
-        changer: { full_name: 'Alex Rivera (Plant Shift Operator)' },
-      },
-      {
-        id: 'h4b',
-        complaint_id: 'c1111111-0004-0000-0000-000000000004',
-        from_status: 'submitted',
-        to_status: 'in_progress',
-        changed_by: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-        note: 'Mechanical fitters dispatched to measure bearing clearances and replenish synthetic grease',
-        created_at: '2026-10-07T11:00:00.000Z',
-        changer: { full_name: 'Marcus Vance (Plant Operations Director)' },
-      },
-    ],
-  },
-];
-
-const INITIAL_COMMENTS: Record<string, Comment[]> = {
-  'c1111111-0001-0000-0000-000000000001': [
-    {
-      id: 'comm1',
-      complaint_id: 'c1111111-0001-0000-0000-000000000001',
-      author_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-      body: 'Pressure gauge dropped to 60 bar twice during stamping cycle. We have halted Press #4 to prevent cylinder scoring.',
-      is_internal: false,
-      created_at: '2026-10-07T14:35:00.000Z',
-      updated_at: '2026-10-07T14:35:00.000Z',
-      author: { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', full_name: 'Alex Rivera (Plant Shift Operator)', avatar_url: null },
-    },
-    {
-      id: 'comm2',
-      complaint_id: 'c1111111-0001-0000-0000-000000000001',
-      author_id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-      body: 'INTERNAL NOTE: Mechanical hydraulics team notified. Issued LOTO lockout permit for Sector B Bay 4.',
-      is_internal: true,
-      created_at: '2026-10-07T15:00:00.000Z',
-      updated_at: '2026-10-07T15:00:00.000Z',
-      author: { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', full_name: 'Marcus Vance (Plant Operations Director)', avatar_url: null },
-    },
-  ],
-};
-
-const INITIAL_ATTACHMENTS: Record<string, any[]> = {
-  'c1111111-0001-0000-0000-000000000001': [
-    {
-      id: 'att1',
-      complaint_id: 'c1111111-0001-0000-0000-000000000001',
-      uploaded_by: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-      file_name: 'hydraulic_cylinder_pressure_drop_log.csv',
-      file_size: 14200,
-      mime_type: 'text/csv',
-      storage_path: 'mock/hydraulic_cylinder_pressure_drop_log.csv',
-      created_at: '2026-10-07T14:32:00.000Z',
-      uploader: { full_name: 'Alex Rivera (Plant Shift Operator)' },
-      download_url: '#',
-    },
-  ],
-};
-
-const INITIAL_NOTIFICATIONS: Notification[] = [
-  {
-    id: 'n1',
-    user_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    complaint_id: 'c1111111-0003-0000-0000-000000000003',
-    type: 'status_changed',
-    title: 'Plant Incident Resolved',
-    body: 'Incident "12-Bar Steam Header Flange Gasket Failure in Boiler House" has been marked resolved.',
-    is_read: false,
-    created_at: '2026-10-05T16:00:00.000Z',
-  },
-  {
-    id: 'n2',
-    user_id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-    complaint_id: 'c1111111-0001-0000-0000-000000000001',
-    type: 'status_changed',
-    title: 'New Plant Incident Filed',
-    body: 'CRITICAL Plant Incident: 500-Ton Hydraulic Press Primary Cylinder Pressure Loss in Bay 4.',
-    is_read: false,
-    created_at: '2026-10-07T14:30:00.000Z',
-  },
-];
-
-const INITIAL_AUDIT_LOGS = [
-  {
-    id: 'aud-1',
-    actor: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-    action: 'UPDATE',
-    table_name: 'complaints',
-    row_id: 'c1111111-0003-0000-0000-000000000003',
-    old_data: { status: 'in_progress', version: 3 },
-    new_data: { status: 'resolved', version: 4 },
-    created_at: '2026-10-05T16:00:00.000Z',
-    actor_profile: { full_name: 'Marcus Vance (Plant Operations Director)', role: 'admin' },
-  },
-  {
-    id: 'aud-2',
-    actor: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    action: 'INSERT',
-    table_name: 'complaints',
-    row_id: 'c1111111-0001-0000-0000-000000000001',
-    old_data: null,
-    new_data: { status: 'submitted', title: '500-Ton Hydraulic Press Primary Cylinder Pressure Loss', version: 1 },
-    created_at: '2026-10-07T14:30:00.000Z',
-    actor_profile: { full_name: 'Alex Rivera (Plant Shift Operator)', role: 'employee' },
-  },
-];
-
 class MockStore {
-  private complaints = [...INITIAL_COMPLAINTS];
-  private departments = [...INITIAL_DEPARTMENTS];
-  private categories = [...INITIAL_CATEGORIES];
-  private comments = { ...INITIAL_COMMENTS };
-  private attachments = { ...INITIAL_ATTACHMENTS };
-  private notifications = [...INITIAL_NOTIFICATIONS];
-  private auditLogs = [...INITIAL_AUDIT_LOGS];
+  private users: Record<string, StoredUser> = {};
+  private complaints: any[] = [];
+  private departments: Department[] = [];
+  private categories: Category[] = [];
+  private comments: Record<string, Comment[]> = {};
+  private attachments: Record<string, any[]> = {};
+  private notifications: Notification[] = [];
+  private auditLogs: any[] = [];
+
+  constructor() {
+    this.cleanLegacyDummyData();
+    this.loadAll();
+
+    // Listen to localStorage storage events across browser tabs
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e) => {
+        if (e.key && e.key.startsWith('complaintease_')) {
+          this.loadAll();
+        }
+      });
+    }
+  }
+
+  /**
+   * One-time cleanup to ensure all old hardcoded dummy complaints/comments
+   * are purged from the browser localStorage for a clean slate.
+   */
+  private cleanLegacyDummyData() {
+    if (typeof window === 'undefined') return;
+    try {
+      const CLEAN_FLAG = 'complaintease_clean_slate_v4';
+      if (localStorage.getItem(CLEAN_FLAG) !== 'true') {
+        localStorage.removeItem('complaintease_complaints');
+        localStorage.removeItem('complaintease_comments');
+        localStorage.removeItem('complaintease_attachments');
+        localStorage.removeItem('complaintease_notifications');
+        localStorage.removeItem('complaintease_audit_logs');
+        localStorage.setItem(CLEAN_FLAG, 'true');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  private loadAll() {
+    if (typeof window === 'undefined') {
+      this.users = { ...BASELINE_USERS };
+      this.complaints = [];
+      this.departments = [...INITIAL_DEPARTMENTS];
+      this.categories = [...INITIAL_CATEGORIES];
+      this.comments = {};
+      this.attachments = {};
+      this.notifications = [];
+      this.auditLogs = [];
+      return;
+    }
+
+    try {
+      // 1. Users
+      const rawUsers = localStorage.getItem('complaintease_users');
+      if (rawUsers) {
+        this.users = JSON.parse(rawUsers);
+      } else {
+        this.users = { ...BASELINE_USERS };
+        localStorage.setItem('complaintease_users', JSON.stringify(this.users));
+      }
+
+      // Ensure baseline admin and employee exist
+      Object.entries(BASELINE_USERS).forEach(([email, u]) => {
+        if (!this.users[email]) {
+          this.users[email] = u;
+        }
+      });
+
+      // 2. Complaints: starts empty
+      const rawComplaints = localStorage.getItem('complaintease_complaints');
+      this.complaints = rawComplaints ? JSON.parse(rawComplaints) : [];
+
+      // 3. Departments
+      const rawDepts = localStorage.getItem('complaintease_departments');
+      this.departments = rawDepts ? JSON.parse(rawDepts) : [...INITIAL_DEPARTMENTS];
+
+      // 4. Categories
+      const rawCats = localStorage.getItem('complaintease_categories');
+      this.categories = rawCats ? JSON.parse(rawCats) : [...INITIAL_CATEGORIES];
+
+      // 5. Comments: starts empty
+      const rawComments = localStorage.getItem('complaintease_comments');
+      this.comments = rawComments ? JSON.parse(rawComments) : {};
+
+      // 6. Attachments: starts empty
+      const rawAtts = localStorage.getItem('complaintease_attachments');
+      this.attachments = rawAtts ? JSON.parse(rawAtts) : {};
+
+      // 7. Notifications: starts empty
+      const rawNotifs = localStorage.getItem('complaintease_notifications');
+      this.notifications = rawNotifs ? JSON.parse(rawNotifs) : [];
+
+      // 8. Audit logs: starts empty
+      const rawAudit = localStorage.getItem('complaintease_audit_logs');
+      this.auditLogs = rawAudit ? JSON.parse(rawAudit) : [];
+    } catch (err) {
+      console.warn('Error reading from localStorage:', err);
+    }
+  }
+
+  private persist(key: string, data: any) {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(`complaintease_${key}`, JSON.stringify(data));
+      this.broadcastSync();
+    } catch (e) {
+      console.error(`Failed to persist complaintease_${key}:`, e);
+    }
+  }
+
+  private broadcastSync() {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem('complaintease_sync_ping', Date.now().toString());
+      window.dispatchEvent(new CustomEvent('complaintease_storage_sync'));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // =========================================================================
+  // USER AUTHENTICATION & REGISTRATION
+  // =========================================================================
+
+  registerUser(data: {
+    email: string;
+    password?: string;
+    full_name: string;
+    role?: UserRole;
+    department_id?: string | null;
+  }): { id: string; email: string; message: string } {
+    const normEmail = data.email.toLowerCase().trim();
+
+    if (this.users[normEmail]) {
+      throw new Error(`An account with email "${data.email}" already exists. Please sign in.`);
+    }
+
+    const userId = crypto.randomUUID();
+    const newUser: StoredUser = {
+      user: { id: userId, email: normEmail },
+      password: data.password || 'Demo1234!',
+      profile: {
+        id: userId,
+        full_name: data.full_name.trim(),
+        role: data.role || 'employee',
+        department_id: data.department_id || null,
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    };
+
+    this.users[normEmail] = newUser;
+    this.persist('users', this.users);
+
+    // Audit log
+    this.auditLogs.unshift({
+      id: crypto.randomUUID(),
+      actor: userId,
+      action: 'INSERT',
+      table_name: 'profiles',
+      row_id: userId,
+      old_data: null,
+      new_data: newUser.profile,
+      created_at: new Date().toISOString(),
+      actor_profile: newUser.profile,
+    });
+    this.persist('audit_logs', this.auditLogs);
+
+    return {
+      id: userId,
+      email: normEmail,
+      message: 'Account registered successfully.',
+    };
+  }
+
+  authenticate(email: string, password: string): { user: any; profile: Profile } {
+    const normEmail = email.toLowerCase().trim();
+    const stored = this.users[normEmail];
+
+    if (!stored) {
+      throw new Error(`No account found for "${email}". Please register or check your email.`);
+    }
+
+    if (stored.password !== password) {
+      throw new Error('Incorrect password. Please try again.');
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('complaintease_demo_user', normEmail);
+      this.broadcastSync();
+    }
+
+    return {
+      user: stored.user,
+      profile: stored.profile,
+    };
+  }
+
+  getUserByEmail(email: string): StoredUser | undefined {
+    return this.users[email.toLowerCase().trim()];
+  }
+
+  getCurrentProfile(): Profile | undefined {
+    if (typeof window === 'undefined') return undefined;
+    const activeEmail = localStorage.getItem('complaintease_demo_user');
+    if (!activeEmail) return undefined;
+    return this.users[activeEmail.toLowerCase().trim()]?.profile;
+  }
+
+  getUsers(): Profile[] {
+    return Object.values(this.users).map((u) => u.profile);
+  }
+
+  updateUserRole(id: string, data: { role: string; department_id?: string | null }): Profile {
+    const target = Object.values(this.users).find((u) => u.profile.id === id);
+    if (!target) throw new Error('User not found');
+
+    const oldData = { ...target.profile };
+    target.profile.role = data.role as UserRole;
+    if (data.department_id !== undefined) target.profile.department_id = data.department_id;
+    target.profile.updated_at = new Date().toISOString();
+
+    this.persist('users', this.users);
+
+    this.auditLogs.unshift({
+      id: crypto.randomUUID(),
+      actor: this.getCurrentProfile()?.id || null,
+      action: 'UPDATE',
+      table_name: 'profiles',
+      row_id: id,
+      old_data: oldData,
+      new_data: target.profile,
+      created_at: new Date().toISOString(),
+      actor_profile: this.getCurrentProfile() || target.profile,
+    });
+    this.persist('audit_logs', this.auditLogs);
+
+    return target.profile;
+  }
+
+  // =========================================================================
+  // DEPARTMENTS & CATEGORIES
+  // =========================================================================
 
   getDepartments(): Department[] {
     return this.departments;
@@ -399,11 +391,13 @@ class MockStore {
       updated_at: new Date().toISOString(),
     };
     this.departments.push(dept);
+    this.persist('departments', this.departments);
     return dept;
   }
 
   deleteDepartment(id: string) {
     this.departments = this.departments.filter((d) => d.id !== id);
+    this.persist('departments', this.departments);
   }
 
   getCategories(): Category[] {
@@ -419,35 +413,29 @@ class MockStore {
       created_at: new Date().toISOString(),
     };
     this.categories.push(cat);
+    this.persist('categories', this.categories);
     return cat;
   }
 
   deleteCategory(id: string) {
     this.categories = this.categories.filter((c) => c.id !== id);
-  }
-
-  getUsers(): Profile[] {
-    return Object.values(DEMO_PROFILES).map((p) => p.profile);
-  }
-
-  updateUserRole(id: string, data: any): Profile {
-    const target = Object.values(DEMO_PROFILES).find((p) => p.profile.id === id);
-    if (target) {
-      target.profile.role = data.role;
-      if (data.department_id !== undefined) target.profile.department_id = data.department_id;
-      return target.profile;
-    }
-    throw new Error('User not found');
+    this.persist('categories', this.categories);
   }
 
   getAuditLogs(): any[] {
     return this.auditLogs;
   }
 
+  // =========================================================================
+  // COMPLAINTS MANAGEMENT
+  // =========================================================================
+
   listComplaints(params: Record<string, any>, currentProfile?: Profile): ComplaintListResponse {
     let list = [...this.complaints];
 
-    // RLS emulation: employees see only their own complaints; admins see all
+    // RLS emulation:
+    // If user is employee: they see ONLY their own reported complaints!
+    // If user is admin: they see ALL complaints across the entire plant!
     if (currentProfile?.role === 'employee') {
       list = list.filter((c) => c.created_by === currentProfile.id);
     }
@@ -457,18 +445,24 @@ class MockStore {
     if (params.department_id) list = list.filter((c) => c.department_id === params.department_id);
     if (params.search) {
       const q = params.search.toLowerCase();
-      list = list.filter((c) => c.title.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
+      list = list.filter(
+        (c) =>
+          c.title.toLowerCase().includes(q) ||
+          c.description.toLowerCase().includes(q) ||
+          (c.location_address && c.location_address.toLowerCase().includes(q)),
+      );
     }
 
     const formatted = list.map((c) => ({
       ...c,
       category: this.categories.find((cat) => cat.id === c.category_id) || { id: c.category_id, name: 'General' },
       department: this.departments.find((d) => d.id === c.department_id) || { id: c.department_id, name: 'General' },
-      creator: Object.values(DEMO_PROFILES).find((p) => p.profile.id === c.created_by)?.profile || {
-        id: c.created_by,
-        full_name: 'Alex Rivera (Plant Shift Operator)',
-        avatar_url: null,
-      },
+      creator:
+        Object.values(this.users).find((u) => u.profile.id === c.created_by)?.profile || {
+          id: c.created_by,
+          full_name: 'Employee',
+          avatar_url: null,
+        },
       comment_count: (this.comments[c.id] || []).length,
       attachment_count: (this.attachments[c.id] || []).length,
     }));
@@ -482,23 +476,26 @@ class MockStore {
 
   getComplaint(id: string): any {
     const c = this.complaints.find((comp) => comp.id === id);
-    if (!c) throw new Error('Complaint not found');
+    if (!c) throw new Error('Plant incident not found.');
 
     return {
       ...c,
       category: this.categories.find((cat) => cat.id === c.category_id) || { id: c.category_id, name: 'General' },
       department: this.departments.find((d) => d.id === c.department_id) || { id: c.department_id, name: 'General' },
-      creator: Object.values(DEMO_PROFILES).find((p) => p.profile.id === c.created_by)?.profile || {
-        id: c.created_by,
-        full_name: 'Staff',
-        avatar_url: null,
-      },
+      creator:
+        Object.values(this.users).find((u) => u.profile.id === c.created_by)?.profile || {
+          id: c.created_by,
+          full_name: 'Employee',
+          avatar_url: null,
+        },
       status_history: c.status_history || [],
     };
   }
 
   createComplaint(data: CreateComplaintInput, currentProfile?: Profile): any {
-    const creatorId = currentProfile?.id || 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    const creator = currentProfile || this.getCurrentProfile() || this.users['employee@demo.com']?.profile;
+    const creatorId = creator?.id || crypto.randomUUID();
+
     const newComp = {
       id: crypto.randomUUID(),
       title: data.title,
@@ -524,14 +521,32 @@ class MockStore {
           from_status: null,
           to_status: 'submitted',
           changed_by: creatorId,
-          note: 'Submitted by employee',
+          note: 'Reported by employee via portal with live telemetry',
           created_at: new Date().toISOString(),
-          changer: { full_name: currentProfile?.full_name || 'Employee' },
+          changer: { full_name: creator?.full_name || 'Shift Operator' },
         },
       ],
     };
     newComp.status_history[0].complaint_id = newComp.id;
+
     this.complaints.unshift(newComp);
+    this.persist('complaints', this.complaints);
+
+    // Notify admins of new incident
+    const adminUser = Object.values(this.users).find((u) => u.profile.role === 'admin');
+    if (adminUser) {
+      this.notifications.unshift({
+        id: crypto.randomUUID(),
+        user_id: adminUser.profile.id,
+        complaint_id: newComp.id,
+        type: 'status_changed',
+        title: 'New Plant Incident Reported',
+        body: `[${newComp.priority.toUpperCase()}] ${newComp.title}`,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+      this.persist('notifications', this.notifications);
+    }
 
     // Audit log
     this.auditLogs.unshift({
@@ -543,15 +558,16 @@ class MockStore {
       old_data: null,
       new_data: newComp,
       created_at: new Date().toISOString(),
-      actor_profile: { full_name: currentProfile?.full_name || 'Employee', role: currentProfile?.role || 'employee' },
+      actor_profile: creator,
     });
+    this.persist('audit_logs', this.auditLogs);
 
     return newComp;
   }
 
   transitionComplaint(id: string, data: TransitionInput, currentProfile?: Profile) {
     const comp = this.complaints.find((c) => c.id === id);
-    if (!comp) throw new Error('Complaint not found');
+    if (!comp) throw new Error('Plant incident not found.');
 
     // Optimistic lock check
     if (comp.version !== data.expected_version) {
@@ -564,6 +580,7 @@ class MockStore {
       throw new Error(`Invalid status transition from ${comp.status} to ${data.new_status}`);
     }
 
+    const actor = currentProfile || this.getCurrentProfile();
     const oldStatus = comp.status;
     comp.status = data.new_status;
     comp.version += 1;
@@ -577,32 +594,49 @@ class MockStore {
       complaint_id: id,
       from_status: oldStatus,
       to_status: data.new_status,
-      changed_by: currentProfile?.id || 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+      changed_by: actor?.id || 'admin',
       note: data.note || null,
       created_at: new Date().toISOString(),
-      changer: { full_name: currentProfile?.full_name || 'Staff' },
+      changer: { full_name: actor?.full_name || 'Plant Supervisor' },
     });
 
-    // Notify author if status changed
+    this.persist('complaints', this.complaints);
+
+    // Notify author of status change
     this.notifications.unshift({
       id: crypto.randomUUID(),
       user_id: comp.created_by,
       complaint_id: id,
       type: 'status_changed',
-      title: 'Status Updated',
-      body: `Complaint "${comp.title}" is now ${data.new_status.replace('_', ' ')}`,
+      title: 'Plant Incident Status Updated',
+      body: `Incident "${comp.title}" is now ${data.new_status.replace('_', ' ')}.`,
       is_read: false,
       created_at: new Date().toISOString(),
     });
+    this.persist('notifications', this.notifications);
+
+    // Audit log
+    this.auditLogs.unshift({
+      id: crypto.randomUUID(),
+      actor: actor?.id || null,
+      action: 'UPDATE',
+      table_name: 'complaints',
+      row_id: id,
+      old_data: { status: oldStatus, version: comp.version - 1 },
+      new_data: { status: comp.status, version: comp.version },
+      created_at: new Date().toISOString(),
+      actor_profile: actor,
+    });
+    this.persist('audit_logs', this.auditLogs);
 
     return { message: 'Transition succeeded', result: comp };
   }
 
   assignComplaint(id: string, data: AssignInput, currentProfile?: Profile) {
     const comp = this.complaints.find((c) => c.id === id);
-    if (!comp) throw new Error('Complaint not found');
+    if (!comp) throw new Error('Plant incident not found.');
 
-    const assignee = Object.values(DEMO_PROFILES).find((p) => p.profile.id === data.assigned_to)?.profile;
+    const assignee = Object.values(this.users).find((u) => u.profile.id === data.assigned_to)?.profile;
     comp.assigned_to = assignee ? { id: assignee.id, full_name: assignee.full_name } : null;
     comp.updated_at = new Date().toISOString();
 
@@ -612,17 +646,21 @@ class MockStore {
       comp.version += 1;
     }
 
+    const actor = currentProfile || this.getCurrentProfile();
+
     comp.status_history = comp.status_history || [];
     comp.status_history.push({
       id: crypto.randomUUID(),
       complaint_id: id,
       from_status: oldStatus,
       to_status: comp.status,
-      changed_by: currentProfile?.id || 'cccccccc-cccc-cccc-cccc-cccccccccccc',
-      note: data.note || `Assigned to ${assignee?.full_name || 'worker'}`,
+      changed_by: actor?.id || 'admin',
+      note: data.note || `Assigned to ${assignee?.full_name || 'specialist'}`,
       created_at: new Date().toISOString(),
-      changer: { full_name: currentProfile?.full_name || 'Admin' },
+      changer: { full_name: actor?.full_name || 'Plant Supervisor' },
     });
+
+    this.persist('complaints', this.complaints);
 
     // Notify employee of worker assignment
     this.notifications.unshift({
@@ -630,18 +668,23 @@ class MockStore {
       user_id: comp.created_by,
       complaint_id: id,
       type: 'assigned',
-      title: 'Worker Assigned',
-      body: `${assignee?.full_name || 'A technician'} has been assigned to work on "${comp.title}".`,
+      title: 'Technician Assigned',
+      body: `${assignee?.full_name || 'A specialist'} has been assigned to investigate "${comp.title}".`,
       is_read: false,
       created_at: new Date().toISOString(),
     });
+    this.persist('notifications', this.notifications);
 
     return { message: 'Assigned successfully', assignee };
   }
 
+  // =========================================================================
+  // COMMENTS & ATTACHMENTS
+  // =========================================================================
+
   getComments(complaintId: string, currentProfile?: Profile): Comment[] {
     const all = this.comments[complaintId] || [];
-    // RLS: hide internal comments from employee
+    // RLS: hide internal notes from regular employees
     if (currentProfile?.role === 'employee') {
       return all.filter((c) => !c.is_internal);
     }
@@ -649,23 +692,26 @@ class MockStore {
   }
 
   createComment(complaintId: string, data: CreateCommentInput, currentProfile?: Profile): Comment {
+    const author = currentProfile || this.getCurrentProfile();
     const newComment: Comment = {
       id: crypto.randomUUID(),
       complaint_id: complaintId,
-      author_id: currentProfile?.id || 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      author_id: author?.id || 'unknown',
       body: data.body,
-      is_internal: currentProfile?.role === 'employee' ? false : Boolean(data.is_internal),
+      is_internal: author?.role === 'employee' ? false : Boolean(data.is_internal),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       author: {
-        id: currentProfile?.id || 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        full_name: currentProfile?.full_name || 'Employee',
+        id: author?.id || 'unknown',
+        full_name: author?.full_name || 'User',
         avatar_url: null,
       },
     };
 
     if (!this.comments[complaintId]) this.comments[complaintId] = [];
     this.comments[complaintId].push(newComment);
+    this.persist('comments', this.comments);
+
     return newComment;
   }
 
@@ -673,6 +719,7 @@ class MockStore {
     for (const key of Object.keys(this.comments)) {
       this.comments[key] = this.comments[key].filter((c) => c.id !== commentId);
     }
+    this.persist('comments', this.comments);
   }
 
   getAttachments(complaintId: string): any[] {
@@ -680,20 +727,22 @@ class MockStore {
   }
 
   confirmAttachment(complaintId: string, data: any, currentProfile?: Profile) {
+    const uploader = currentProfile || this.getCurrentProfile();
     const item = {
       id: crypto.randomUUID(),
       complaint_id: complaintId,
-      uploaded_by: currentProfile?.id || 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      uploaded_by: uploader?.id || 'unknown',
       file_name: data.file_name,
       file_size: data.file_size,
       mime_type: data.mime_type,
       storage_path: data.storage_path,
       created_at: new Date().toISOString(),
-      uploader: { full_name: currentProfile?.full_name || 'Staff' },
+      uploader: { full_name: uploader?.full_name || 'Plant Staff' },
       download_url: '#',
     };
     if (!this.attachments[complaintId]) this.attachments[complaintId] = [];
     this.attachments[complaintId].push(item);
+    this.persist('attachments', this.attachments);
     return item;
   }
 
@@ -704,15 +753,41 @@ class MockStore {
 
   markNotificationRead(id: string) {
     const notif = this.notifications.find((n) => n.id === id);
-    if (notif) notif.is_read = true;
+    if (notif) {
+      notif.is_read = true;
+      this.persist('notifications', this.notifications);
+    }
   }
 
   markAllNotificationsRead(userId?: string) {
     this.notifications.forEach((n) => {
       if (!userId || n.user_id === userId) n.is_read = true;
     });
+    this.persist('notifications', this.notifications);
+  }
+
+  /**
+   * Resets local database back to pristine clean state (0 complaints, 0 comments)
+   */
+  resetStore() {
+    this.complaints = [];
+    this.comments = {};
+    this.attachments = {};
+    this.notifications = [];
+    this.auditLogs = [];
+    this.users = { ...BASELINE_USERS };
+    this.departments = [...INITIAL_DEPARTMENTS];
+    this.categories = [...INITIAL_CATEGORIES];
+
+    this.persist('complaints', this.complaints);
+    this.persist('comments', this.comments);
+    this.persist('attachments', this.attachments);
+    this.persist('notifications', this.notifications);
+    this.persist('audit_logs', this.auditLogs);
+    this.persist('users', this.users);
+    this.persist('departments', this.departments);
+    this.persist('categories', this.categories);
   }
 }
 
 export const mockStore = new MockStore();
-

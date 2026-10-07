@@ -8,9 +8,16 @@ export const Login: React.FC = () => {
   const location = useLocation();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const queryParams = new URLSearchParams(location.search);
+  const initialEmail = queryParams.get('email') || '';
+  const isRegisteredSuccess = Boolean(queryParams.get('registered'));
+
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(
+    isRegisteredSuccess ? 'Registration complete! Sign in with your new account credentials.' : null,
+  );
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,8 +26,12 @@ export const Login: React.FC = () => {
     setLoading(true);
     try {
       await login(email, password);
-      const from = (location.state as any)?.from?.pathname || '/employee';
-      navigate(from, { replace: true });
+      const stored = localStorage.getItem('complaintease_demo_user') || email;
+      if (stored.includes('admin')) {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/employee', { replace: true });
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to sign in. Check credentials.');
     } finally {
@@ -66,6 +77,11 @@ export const Login: React.FC = () => {
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700">
               {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-semibold">
+              ✓ {success}
             </div>
           )}
 

@@ -17,16 +17,20 @@ export const Register: React.FC = () => {
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
-    defaultRole: 'employee',
-  } as any);
+    defaultValues: {
+      role: 'employee',
+    },
+  });
 
   const onSubmit = async (data: RegisterInput) => {
     setServerError(null);
     setSuccessMsg(null);
     try {
       await api.auth.register(data);
-      setSuccessMsg('Account created successfully! You can now log in.');
-      setTimeout(() => navigate('/login'), 2000);
+      setSuccessMsg(`Account created for ${data.email}! Redirecting to login...`);
+      setTimeout(() => {
+        navigate(`/login?registered=1&email=${encodeURIComponent(data.email)}`);
+      }, 1200);
     } catch (err: any) {
       setServerError(err.message || 'Registration failed');
     }
@@ -102,14 +106,14 @@ export const Register: React.FC = () => {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Role
+                Account Role
               </label>
               <select
                 {...register('role')}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white"
               >
-                <option value="employee">Employee</option>
-                <option value="admin">System Admin</option>
+                <option value="employee">Plant Employee / Shift Operator</option>
+                <option value="admin">Plant Administrator / Director</option>
               </select>
             </div>
 

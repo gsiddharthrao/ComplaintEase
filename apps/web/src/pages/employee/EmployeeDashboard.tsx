@@ -119,7 +119,7 @@ export const EmployeeDashboard: React.FC = () => {
           <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
             {search || statusFilter || priorityFilter
               ? 'Try adjusting your filters or search terms.'
-              : 'No incident reports logged under this filter.'}
+              : 'No incident reports logged yet. Submit a new report to log an equipment breakdown or safety hazard.'}
           </p>
           {profile?.role === 'employee' && (
             <Link
