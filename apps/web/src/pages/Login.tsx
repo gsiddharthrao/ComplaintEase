@@ -126,9 +126,12 @@ export const Login: React.FC = () => {
 
           {/* Quick Demo Logins for Interview / Review */}
           <div className="mt-6 pt-6 border-t border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-center mb-3 flex items-center justify-center gap-1">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-center mb-1 flex items-center justify-center gap-1">
               <KeyRound className="w-3.5 h-3.5" />
               1-Click Demo Login
+            </p>
+            <p className="text-[11px] text-slate-400 text-center mb-3">
+              Single dedicated administrator ID & demo operator
             </p>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -137,23 +140,25 @@ export const Login: React.FC = () => {
                 className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold text-center transition-colors flex flex-col items-center justify-center"
               >
                 <span>Shift Operator</span>
-                <span className="text-[10px] text-emerald-600 font-normal">Alex Rivera (Employee)</span>
+                <span className="text-[10px] text-emerald-600 font-normal">Alex Rivera (employee@demo.com)</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleDemoLogin('admin@demo.com')}
                 className="py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-semibold text-center transition-colors flex flex-col items-center justify-center"
               >
-                <span>Plant Director</span>
-                <span className="text-[10px] text-rose-600 font-normal">Marcus Vance (Admin)</span>
+                <span className="flex items-center gap-1 font-bold">
+                  Plant Director
+                </span>
+                <span className="text-[10px] text-rose-600 font-normal">Dedicated Admin (admin@demo.com)</span>
               </button>
             </div>
           </div>
 
           <div className="mt-6 text-center text-xs text-slate-500">
-            New employee?{' '}
+            New plant staff member?{' '}
             <Link to="/register" className="text-brand-600 font-semibold hover:underline">
-              Register here
+              Create Employee Account
             </Link>
           </div>
         </div>

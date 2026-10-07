@@ -697,13 +697,21 @@ export const AdminPanel: React.FC = () => {
                 {users.map((u) => (
                   <div key={u.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50">
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900">{u.full_name}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-slate-900">{u.full_name}</h4>
+                        {u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            Primary Superadmin
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-400 font-mono">User ID: {u.id.slice(0, 8)}...</p>
                     </div>
 
                     <div className="flex items-center space-x-3">
                       <select
                         value={u.role}
+                        disabled={u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc'}
                         onChange={(e) =>
                           updateUserRoleMutation.mutate({
                             id: u.id,
@@ -711,7 +719,9 @@ export const AdminPanel: React.FC = () => {
                             department_id: u.department_id,
                           })
                         }
-                        className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold bg-white outline-none"
+                        className={`px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold bg-white outline-none ${
+                          u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' ? 'opacity-60 cursor-not-allowed bg-slate-100' : ''
+                        }`}
                       >
                         <option value="employee">Employee</option>
                         <option value="admin">System Admin</option>

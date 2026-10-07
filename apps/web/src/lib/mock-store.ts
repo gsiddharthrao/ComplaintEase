@@ -265,6 +265,11 @@ class MockStore {
   }): { id: string; email: string; message: string } {
     const normEmail = data.email.toLowerCase().trim();
 
+    // Prevent anyone from registering or overtaking the single administrator account
+    if (normEmail === 'admin@demo.com' || normEmail === 'admin@plant.com') {
+      throw new Error('This is a reserved administrative account. Please sign in directly using admin credentials.');
+    }
+
     if (this.users[normEmail]) {
       throw new Error(`An account with email "${data.email}" already exists. Please sign in.`);
     }
@@ -276,7 +281,7 @@ class MockStore {
       profile: {
         id: userId,
         full_name: data.full_name.trim(),
-        role: data.role || 'employee',
+        role: 'employee', // STRICT: All public registrations are employee accounts only
         department_id: data.department_id || null,
         avatar_url: null,
         created_at: new Date().toISOString(),
@@ -349,6 +354,11 @@ class MockStore {
   updateUserRole(id: string, data: { role: string; department_id?: string | null }): Profile {
     const target = Object.values(this.users).find((u) => u.profile.id === id);
     if (!target) throw new Error('User not found');
+
+    // Protect primary root admin from accidental demotion
+    if (target.user.email === 'admin@demo.com' && data.role !== 'admin') {
+      throw new Error('Cannot demote the primary Plant Operations Director account.');
+    }
 
     const oldData = { ...target.profile };
     target.profile.role = data.role as UserRole;

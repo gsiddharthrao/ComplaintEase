@@ -29,7 +29,20 @@ authRouter.post(
   validateBody(registerSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, password, full_name, role, department_id } = req.body;
+      const { email, password, full_name, department_id } = req.body;
+
+      const normEmail = email.toLowerCase().trim();
+      if (normEmail === 'admin@demo.com' || normEmail === 'admin@plant.com') {
+        res.status(403).json({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'This is a reserved administrative account. Please sign in instead.',
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
       const adminSupabase = getAdminClient();
 
       const { data, error } = await adminSupabase.auth.admin.createUser({
@@ -38,7 +51,7 @@ authRouter.post(
         email_confirm: true,
         user_metadata: {
           full_name,
-          role,
+          role: 'employee', // Strict security: public registration creates employee accounts only
           department_id: department_id || null,
         },
       });
