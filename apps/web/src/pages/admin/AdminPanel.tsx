@@ -159,11 +159,11 @@ export const AdminPanel: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <ShieldAlert className="w-6 h-6 text-rose-600" />
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <ShieldAlert className="w-6 h-6 text-rose-600 dark:text-rose-400" />
             Plant Operations Command Center
           </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Real-time plant incident oversight, GPS geotag feeds, rapid specialist assignment, and audit logs.
           </p>
         </div>
@@ -176,7 +176,7 @@ export const AdminPanel: React.FC = () => {
               queryClient.invalidateQueries();
             }
           }}
-          className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 text-xs font-semibold rounded-lg border border-slate-200 transition-colors shrink-0"
+          className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 dark:text-slate-300 hover:text-rose-700 dark:hover:text-rose-300 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 transition-colors shrink-0"
           title="Clear all recorded incidents back to zero clean slate"
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -185,17 +185,17 @@ export const AdminPanel: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="border-b border-slate-200 flex flex-wrap">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+        <div className="border-b border-slate-200 dark:border-slate-800 flex flex-wrap">
           <button
             onClick={() => setActiveTab('complaints')}
             className={`flex items-center space-x-2 py-3 px-6 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
               activeTab === 'complaints'
-                ? 'border-brand-600 text-brand-600 bg-brand-50/20'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
-            <MapPin className="w-4 h-4 text-emerald-600" />
+            <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>Incidents & Geotag Feed ({allComplaints.length})</span>
           </button>
 
@@ -203,8 +203,8 @@ export const AdminPanel: React.FC = () => {
             onClick={() => setActiveTab('departments')}
             className={`flex items-center space-x-2 py-3 px-6 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
               activeTab === 'departments'
-                ? 'border-brand-600 text-brand-600 bg-brand-50/20'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             <Building2 className="w-4 h-4" />
@@ -215,8 +215,8 @@ export const AdminPanel: React.FC = () => {
             onClick={() => setActiveTab('categories')}
             className={`flex items-center space-x-2 py-3 px-6 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
               activeTab === 'categories'
-                ? 'border-brand-600 text-brand-600 bg-brand-50/20'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             <Tag className="w-4 h-4" />
@@ -227,8 +227,8 @@ export const AdminPanel: React.FC = () => {
             onClick={() => setActiveTab('users')}
             className={`flex items-center space-x-2 py-3 px-6 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
               activeTab === 'users'
-                ? 'border-brand-600 text-brand-600 bg-brand-50/20'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             <Users className="w-4 h-4" />
@@ -239,8 +239,8 @@ export const AdminPanel: React.FC = () => {
             onClick={() => setActiveTab('audit')}
             className={`flex items-center space-x-2 py-3 px-6 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
               activeTab === 'audit'
-                ? 'border-brand-600 text-brand-600 bg-brand-50/20'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             <ScrollText className="w-4 h-4" />
@@ -253,15 +253,15 @@ export const AdminPanel: React.FC = () => {
           {activeTab === 'complaints' && (
             <div className="space-y-6">
               {/* Filter / Search Bar */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col md:flex-row gap-3 items-center justify-between">
+              <div className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row gap-3 items-center justify-between transition-colors">
                 <div className="relative flex-1 w-full">
-                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search incidents by title, description, address, or reporter..."
                     value={complaintSearch}
                     onChange={(e) => setComplaintSearch(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                    className="w-full pl-10 pr-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500 outline-none transition-all"
                   />
                 </div>
 
@@ -271,7 +271,7 @@ export const AdminPanel: React.FC = () => {
                     <select
                       value={complaintStatusFilter}
                       onChange={(e) => setComplaintStatusFilter(e.target.value)}
-                      className="px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 bg-white outline-none"
+                      className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-brand-500"
                     >
                       <option value="">All Statuses ({allComplaints.length})</option>
                       <option value="submitted">Submitted</option>
@@ -285,8 +285,8 @@ export const AdminPanel: React.FC = () => {
                     </select>
                   </div>
 
-                  <span className="text-xs text-slate-500 shrink-0">
-                    Showing <strong>{filteredComplaints.length}</strong> incidents
+                  <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">
+                    Showing <strong className="text-slate-700 dark:text-slate-200">{filteredComplaints.length}</strong> incidents
                   </span>
                 </div>
               </div>
@@ -314,7 +314,7 @@ export const AdminPanel: React.FC = () => {
                     return (
                       <div
                         key={c.id}
-                        className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-shadow relative space-y-4"
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 hover:shadow-xl transition-all relative space-y-4"
                       >
                         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
                           {/* Left Column: Complaint Details & Map */}
@@ -322,13 +322,13 @@ export const AdminPanel: React.FC = () => {
                             <div className="flex flex-wrap items-center gap-2">
                               <StatusBadge status={c.status} />
                               <PriorityBadge priority={c.priority} />
-                              <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700">
+                              <span className="px-2 py-0.5 rounded-lg text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                                 {c.department?.name || 'Department'}
                               </span>
-                              <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                              <span className="px-2 py-0.5 rounded-lg text-[11px] font-medium bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">
                                 {c.category?.name || 'General'}
                               </span>
-                              <span className="text-xs text-slate-400 flex items-center gap-1 ml-auto">
+                              <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 ml-auto">
                                 <Clock className="w-3.5 h-3.5" />
                                 {new Date(c.created_at).toLocaleDateString([], {
                                   month: 'short',
@@ -341,36 +341,36 @@ export const AdminPanel: React.FC = () => {
                             <div>
                               <Link
                                 to={`/complaints/${c.id}`}
-                                className="text-base font-bold text-slate-900 hover:text-brand-600 transition-colors inline-flex items-center gap-1.5"
+                                className="text-base font-bold text-slate-900 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 transition-colors inline-flex items-center gap-1.5"
                               >
                                 <span>{c.title}</span>
-                                <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-brand-600" />
+                                <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-brand-600 dark:group-hover:text-brand-400" />
                               </Link>
-                              <p className="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">
+                              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 line-clamp-2 leading-relaxed">
                                 {c.description}
                               </p>
                             </div>
 
                             {/* Sub-meta: Reporter & Assignee */}
-                            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1 border-t border-slate-100">
+                            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
                               <span className="flex items-center gap-1.5">
-                                <Users className="w-3.5 h-3.5 text-slate-400" />
+                                <Users className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                                 Reporter:{' '}
-                                <strong className="text-slate-700">
+                                <strong className="text-slate-700 dark:text-slate-200">
                                   {c.creator?.full_name || 'Anonymous Employee'}
                                 </strong>
                               </span>
                               {c.assigned_to ? (
-                                <span className="flex items-center gap-1.5 text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                                  <Wrench className="w-3 h-3 text-indigo-600" />
+                                <span className="flex items-center gap-1.5 text-indigo-700 dark:text-indigo-300 font-semibold bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                                  <Wrench className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                                   Assigned: {c.assigned_to.full_name}
                                 </span>
                               ) : (
-                                <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-semibold text-[11px]">
+                                <span className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800 font-semibold text-[11px]">
                                   ⚠️ Unassigned
                                 </span>
                               )}
-                              <span className="text-slate-400 text-[11px] ml-auto">
+                              <span className="text-slate-400 dark:text-slate-500 text-[11px] ml-auto">
                                 v{c.version} • {c.comment_count || 0} comments
                               </span>
                             </div>
@@ -390,13 +390,13 @@ export const AdminPanel: React.FC = () => {
                           </div>
 
                           {/* Right Column: Photo Evidence */}
-                          <div className="flex flex-col gap-3 lg:w-72 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-slate-100 lg:pl-4">
+                          <div className="flex flex-col gap-3 lg:w-72 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 lg:pl-4">
                             {/* Photo Evidence Card */}
                             {hasImage ? (
-                              <div className="flex flex-col gap-2 p-3 bg-blue-50/60 border border-blue-200/80 rounded-xl">
-                                <div className="flex items-center justify-between text-xs font-bold text-blue-900">
+                              <div className="flex flex-col gap-2 p-3 bg-blue-50/60 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900 rounded-2xl">
+                                <div className="flex items-center justify-between text-xs font-bold text-blue-900 dark:text-blue-300">
                                   <span className="flex items-center gap-1">
-                                    <Camera className="w-3.5 h-3.5 text-blue-600" />
+                                    <Camera className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                                     Photo Evidence
                                   </span>
                                   <button
@@ -407,7 +407,7 @@ export const AdminPanel: React.FC = () => {
                                         title: c.title,
                                       })
                                     }
-                                    className="text-[11px] text-blue-700 hover:text-blue-900 underline font-medium"
+                                    className="text-[11px] text-blue-700 dark:text-blue-400 hover:underline font-medium"
                                   >
                                     Enlarge
                                   </button>
@@ -419,7 +419,7 @@ export const AdminPanel: React.FC = () => {
                                       title: c.title,
                                     })
                                   }
-                                  className="relative w-full h-32 rounded-lg overflow-hidden border border-blue-300 cursor-pointer group"
+                                  className="relative w-full h-32 rounded-xl overflow-hidden border border-blue-300 dark:border-blue-800 cursor-pointer group"
                                   title="Click to enlarge photo"
                                 >
                                   <img
@@ -427,22 +427,22 @@ export const AdminPanel: React.FC = () => {
                                     alt="Plant Incident Evidence"
                                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                   />
-                                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <Maximize2 className="w-5 h-5 text-white" />
                                   </div>
                                 </div>
                               </div>
                             ) : (
-                              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-400 flex items-center gap-1.5">
-                                <Camera className="w-3.5 h-3.5 text-slate-300" />
+                              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                                <Camera className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
                                 <span>No photo attached</span>
                               </div>
                             )}
 
                             {/* Physical Landmark note if no GPS */}
                             {c.location_lat == null && c.location_address && (
-                              <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900">
-                                <span className="font-bold block text-[10px] uppercase text-emerald-700">Landmark</span>
+                              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-900 dark:text-emerald-300">
+                                <span className="font-bold block text-[10px] uppercase text-emerald-700 dark:text-emerald-400">Landmark</span>
                                 {c.location_address}
                               </div>
                             )}
@@ -450,10 +450,10 @@ export const AdminPanel: React.FC = () => {
                         </div>
 
                         {/* RAPID WORKER ASSIGNMENT & 1-CLICK RESOLUTION BAR */}
-                        <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
+                        <div className="bg-slate-50/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 transition-colors">
                           {/* Quick Worker Assignment Dropdown */}
                           <div className="flex items-center gap-2 flex-1 min-w-[220px]">
-                            <Wrench className="w-4 h-4 text-indigo-600 shrink-0" />
+                            <Wrench className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                             <select
                               value={c.assigned_to?.id || ''}
                               onChange={(e) => {
@@ -461,7 +461,7 @@ export const AdminPanel: React.FC = () => {
                                 if (val) quickAssignMutation.mutate({ complaintId: c.id, workerId: val });
                               }}
                               disabled={quickAssignMutation.isPending}
-                              className="w-full text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:border-brand-500 shadow-sm transition-colors"
+                              className="w-full text-xs font-semibold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 outline-none cursor-pointer hover:border-brand-500 shadow-sm transition-colors"
                             >
                               <option value="">
                                 ⚡ {c.assigned_to ? `Assigned: ${c.assigned_to.full_name} (Reassign ▾)` : 'Assign Specialist / Technician...'}
@@ -557,10 +557,10 @@ export const AdminPanel: React.FC = () => {
                   if (!deptName.trim()) return;
                   createDeptMutation.mutate({ name: deptName.trim(), description: deptDesc.trim() });
                 }}
-                className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row gap-3 items-end"
+                className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-3 items-end transition-colors"
               >
                 <div className="flex-1 w-full">
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
                     Department Name
                   </label>
                   <input
@@ -569,11 +569,11 @@ export const AdminPanel: React.FC = () => {
                     value={deptName}
                     onChange={(e) => setDeptName(e.target.value)}
                     placeholder="e.g. Legal & Compliance"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white outline-none"
+                    className="w-full px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
                 <div className="flex-1 w-full">
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
                     Description
                   </label>
                   <input
@@ -581,29 +581,29 @@ export const AdminPanel: React.FC = () => {
                     value={deptDesc}
                     onChange={(e) => setDeptDesc(e.target.value)}
                     placeholder="Contract review & regulatory audit"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white outline-none"
+                    className="w-full px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={createDeptMutation.isPending}
-                  className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-lg flex items-center space-x-1.5 shrink-0"
+                  className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-brand-600/20 transition-all flex items-center space-x-1.5 shrink-0"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Add Department</span>
                 </button>
               </form>
 
-              <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
                 {departments.map((d) => (
-                  <div key={d.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
+                  <div key={d.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900">{d.name}</h4>
-                      <p className="text-xs text-slate-500">{d.description || 'No description'}</p>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">{d.name}</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{d.description || 'No description'}</p>
                     </div>
                     <button
                       onClick={() => deleteDeptMutation.mutate(d.id)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg transition-colors"
                       title="Delete department"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -627,10 +627,10 @@ export const AdminPanel: React.FC = () => {
                     department_id: catDeptId || null,
                   });
                 }}
-                className="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end"
+                className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end transition-colors"
               >
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
                     Category Name
                   </label>
                   <input
@@ -639,17 +639,17 @@ export const AdminPanel: React.FC = () => {
                     value={catName}
                     onChange={(e) => setCatName(e.target.value)}
                     placeholder="e.g. Server Incident"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white outline-none"
+                    className="w-full px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
                     Department (Optional)
                   </label>
                   <select
                     value={catDeptId}
                     onChange={(e) => setCatDeptId(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white outline-none"
+                    className="w-full px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="">Global (All Departments)</option>
                     {departments.map((d) => (
@@ -662,25 +662,25 @@ export const AdminPanel: React.FC = () => {
                 <button
                   type="submit"
                   disabled={createCatMutation.isPending}
-                  className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-lg flex items-center justify-center space-x-1.5"
+                  className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-brand-600/20 transition-all flex items-center justify-center space-x-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Add Category</span>
                 </button>
               </form>
 
-              <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
                 {categories.map((c) => (
-                  <div key={c.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
+                  <div key={c.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900">{c.name}</h4>
-                      <p className="text-xs text-slate-500">
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">{c.name}</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         {(c as any).department ? `Department: ${(c as any).department.name}` : 'Global Category'}
                       </p>
                     </div>
                     <button
                       onClick={() => deleteCatMutation.mutate(c.id)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg transition-colors"
                       title="Delete category"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -694,19 +694,19 @@ export const AdminPanel: React.FC = () => {
           {/* 3. USERS */}
           {activeTab === 'users' && (
             <div className="space-y-4">
-              <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
                 {users.map((u) => (
-                  <div key={u.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50">
+                  <div key={u.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-slate-900">{u.full_name}</h4>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">{u.full_name}</h4>
                         {(u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' || u.role === 'admin') && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                             Administrator
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 font-mono">User ID: {u.id.slice(0, 8)}...</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">User ID: {u.id.slice(0, 8)}...</p>
                     </div>
 
                     <div className="flex items-center space-x-3">
@@ -720,8 +720,8 @@ export const AdminPanel: React.FC = () => {
                             department_id: u.department_id,
                           })
                         }
-                        className={`px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold bg-white outline-none ${
-                          u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' || u.role === 'admin' ? 'opacity-60 cursor-not-allowed bg-slate-100' : ''
+                        className={`px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none ${
+                          u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' || u.role === 'admin' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50' : ''
                         }`}
                       >
                         <option value="employee">Employee</option>
@@ -737,7 +737,7 @@ export const AdminPanel: React.FC = () => {
                             department_id: e.target.value || null,
                           })
                         }
-                        className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-medium bg-white outline-none"
+                        className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none"
                       >
                         <option value="">No Department</option>
                         {departments.map((d) => (
@@ -756,13 +756,13 @@ export const AdminPanel: React.FC = () => {
           {/* 4. AUDIT TRAIL */}
           {activeTab === 'audit' && (
             <div className="space-y-4">
-              <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
                 🔒 <strong>Append-Only Security Guarantee:</strong> All rows below were recorded via database triggers. Database triggers prevent any UPDATE or DELETE operations on this table (SQLSTATE 55000).
               </div>
 
-              <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-500 font-semibold uppercase">
+              <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl">
+                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-xs">
+                  <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase">
                     <tr>
                       <th className="px-4 py-3">Timestamp</th>
                       <th className="px-4 py-3">Action</th>
@@ -771,34 +771,34 @@ export const AdminPanel: React.FC = () => {
                       <th className="px-4 py-3">Changes (JSON Diff)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white font-mono">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900 font-mono">
                     {auditLogs.map((log: any) => (
-                      <tr key={log.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 whitespace-nowrap text-slate-400">
+                      <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-400 dark:text-slate-500">
                           {new Date(log.created_at).toLocaleTimeString([], {
                             hour: '2-digit',
                             minute: '2-digit',
                             second: '2-digit',
                           })}
                         </td>
-                        <td className="px-4 py-3 font-bold text-slate-900">
+                        <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] ${
                               log.action === 'INSERT'
-                                ? 'bg-emerald-100 text-emerald-800'
+                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
                                 : log.action === 'UPDATE'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-rose-100 text-rose-800'
+                                ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300'
+                                : 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
                             }`}
                           >
                             {log.action}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-slate-600">{log.table_name}</td>
-                        <td className="px-4 py-3 text-slate-600">
+                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-semibold">{log.table_name}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                           {log.actor_profile?.full_name || log.actor?.slice(0, 8) || 'System'}
                         </td>
-                        <td className="px-4 py-3 text-slate-500 max-w-xs truncate text-[11px]">
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400 max-w-xs truncate text-[11px]">
                           {JSON.stringify(log.new_data || log.old_data || {})}
                         </td>
                       </tr>
@@ -818,36 +818,36 @@ export const AdminPanel: React.FC = () => {
           onClick={() => setLightboxImage(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl border border-slate-700 animate-in fade-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80">
               <div className="flex items-center gap-2">
-                <Camera className="w-4 h-4 text-brand-600" />
-                <h3 className="text-sm font-bold text-slate-800 truncate max-w-md">
+                <Camera className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white truncate max-w-md">
                   Evidence Photo: {lightboxImage.title}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setLightboxImage(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 bg-slate-900 flex items-center justify-center max-h-[75vh] overflow-hidden">
+            <div className="p-4 bg-slate-950 flex items-center justify-center max-h-[75vh] overflow-hidden">
               <img
                 src={lightboxImage.url}
                 alt={lightboxImage.title}
-                className="max-h-[70vh] w-auto max-w-full object-contain rounded-lg shadow"
+                className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl shadow-lg"
               />
             </div>
-            <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex justify-end">
               <button
                 type="button"
                 onClick={() => setLightboxImage(null)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-lg transition-colors"
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-semibold rounded-xl transition-colors"
               >
                 Close Preview
               </button>

@@ -4,11 +4,14 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-800 font-sans;
+    @apply bg-slate-50 text-slate-900 font-sans antialiased transition-colors duration-200;
+  }
+  .dark body {
+    @apply bg-slate-950 text-slate-100;
   }
 }
 
-/* Custom scrollbar for timeline and comments */
+/* Custom scrollbars for both light and dark modes */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -22,5 +25,11 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 

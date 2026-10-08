@@ -22,12 +22,12 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({ history }) => {
               <div className="relative pb-8">
                 {!isLast && (
                   <span
-                    className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-slate-200"
+                    className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-slate-200 dark:bg-slate-800"
                     aria-hidden="true"
                   />
                 )}
                 <div className="relative flex space-x-3 items-start">
-                  <div className="h-8 w-8 rounded-full bg-brand-50 border-2 border-brand-500 flex items-center justify-center text-brand-600 shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-brand-50 dark:bg-brand-950/60 border-2 border-brand-500 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0">
                     <Clock className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0 pt-0.5">
@@ -35,11 +35,11 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({ history }) => {
                       {item.from_status && (
                         <>
                           <StatusBadge status={item.from_status} />
-                          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                         </>
                       )}
                       <StatusBadge status={item.to_status} />
-                      <span className="text-xs text-slate-400 ml-auto flex items-center gap-1">
+                      <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto flex items-center gap-1">
                         {new Date(item.created_at).toLocaleString([], {
                           dateStyle: 'short',
                           timeStyle: 'short',
@@ -47,13 +47,13 @@ export const Timeline: React.FC<TimelineProps> = React.memo(({ history }) => {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
-                      <User className="w-3 h-3 text-slate-400" />
+                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      <User className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                       <span>{item.changer?.full_name || 'System / Staff'}</span>
                     </div>
 
                     {item.note && (
-                      <div className="mt-2 text-xs bg-slate-50 rounded-lg p-2.5 border border-slate-200 text-slate-700 italic">
+                      <div className="mt-2 text-xs bg-slate-50 dark:bg-slate-800/80 rounded-xl p-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 italic">
                         "{item.note}"
                       </div>
                     )}

@@ -89,6 +89,6 @@ This document captures every major engineering trade-off, architectural choice, 
   - *Blocking Offline Uploads without Cloud Storage:* Enforcing mandatory S3/Supabase bucket roundtrips for local evaluation, which causes file upload failures during local demos without active cloud credentials.
 - **Trade-offs & Rationale:**
   - *Pros:* Direct GPS telemetry and photographic evidence drastically cut incident response times by allowing maintenance staff to pinpoint exact hardware/facility locations on campus. Visual evidence prevents fraudulent or ambiguous claims.
-  - *Cons:* Browser privacy settings may prompt or block GPS permissions on desktop environments. Mitigated by providing physical landmark text inputs and an instantaneous one-click "Campus Demo Pin" for evaluation.
+  - *Cons:* Browser privacy settings may prompt or block GPS permissions on desktop environments. Mitigated by providing manual physical landmark/bay text inputs as a fallback.
 
 

@@ -182,21 +182,21 @@ export const NewComplaint: React.FC = () => {
       <div className="flex items-center space-x-3">
         <Link
           to="/employee"
-          className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+          className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Report Plant Incident / Issue</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Report Plant Incident / Issue</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Submit a plant machinery, electrical, or safety incident with live GPS coordinates and photo evidence forwarded directly to plant operations.
           </p>
         </div>
       </div>
 
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
         {serverError && (
-          <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center space-x-2">
+          <div className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-300 flex items-center space-x-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
             <span>{serverError}</span>
           </div>
@@ -206,12 +206,12 @@ export const NewComplaint: React.FC = () => {
           {/* Department Selection */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Target Department *
               </label>
               <select
                 {...register('department_id')}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                className="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none transition-all"
               >
                 <option value="">Select Department...</option>
                 {departments.map((dept) => (
@@ -227,12 +227,12 @@ export const NewComplaint: React.FC = () => {
 
             {/* Category */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Category *
               </label>
               <select
                 {...register('category_id')}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                className="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none transition-all"
               >
                 <option value="">Select Category...</option>
                 {filteredCategories.map((cat) => (
@@ -249,14 +249,14 @@ export const NewComplaint: React.FC = () => {
 
           {/* Priority */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
               Urgency / Priority Tier
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {(['low', 'medium', 'high', 'critical'] as const).map((tier) => (
                 <label
                   key={tier}
-                  className="flex items-center justify-center space-x-2 p-2.5 border rounded-lg cursor-pointer text-xs font-medium capitalize transition-all hover:bg-slate-50"
+                  className="flex items-center justify-center space-x-2 p-2.5 border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 rounded-xl cursor-pointer text-xs font-medium capitalize transition-all hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200"
                 >
                   <input
                     type="radio"
@@ -272,13 +272,13 @@ export const NewComplaint: React.FC = () => {
 
           {/* Title */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
               Incident Subject / Title *
             </label>
             <input
               {...register('title')}
               placeholder="Concise summary (e.g. 500-Ton Hydraulic Press primary cylinder pressure drop)"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500 outline-none transition-all"
             />
             {errors.title && (
               <p className="text-xs text-rose-600 mt-1">{errors.title.message}</p>
@@ -287,14 +287,14 @@ export const NewComplaint: React.FC = () => {
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
               Comprehensive Technical Description *
             </label>
             <textarea
               {...register('description')}
               rows={4}
               placeholder="Provide machine telemetry, observed gauge pressures, abnormal acoustics, and safety hazard impact (minimum 20 characters)..."
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none resize-none"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500 outline-none resize-none transition-all"
             />
             {errors.description && (
               <p className="text-xs text-rose-600 mt-1">{errors.description.message}</p>
@@ -304,17 +304,17 @@ export const NewComplaint: React.FC = () => {
           {/* ======================================================== */}
           {/* SECTION 1: LIVE INCIDENT GEOLOCATION */}
           {/* ======================================================== */}
-          <div className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+          <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 space-y-3 transition-colors">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shadow-xs">
                   <MapPin className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
                     Live Geolocation & Incident Site
                   </h3>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     Capture real-time GPS coordinates to forward physical location to the administrator.
                   </p>
                 </div>
@@ -327,7 +327,7 @@ export const NewComplaint: React.FC = () => {
                       type="button"
                       onClick={handleCaptureLocation}
                       disabled={geoLoading}
-                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                      className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-600/20 hover:shadow-emerald-600/30 transition-all transform hover:-translate-y-0.5 disabled:opacity-50"
                     >
                       {geoLoading ? (
                         <>
@@ -346,7 +346,7 @@ export const NewComplaint: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleClearLocation}
-                    className="inline-flex items-center space-x-1 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2 py-1 rounded transition-colors"
+                    className="inline-flex items-center space-x-1 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-2.5 py-1 rounded-lg transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                     <span>Clear Location</span>
@@ -356,48 +356,48 @@ export const NewComplaint: React.FC = () => {
             </div>
 
             {geoError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center space-x-2">
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-center space-x-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
                 <span>{geoError}</span>
               </div>
             )}
 
             {coords && (
-              <div className="p-3 bg-white rounded-lg border border-emerald-200 shadow-sm space-y-2">
+              <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-emerald-200 dark:border-emerald-800/80 shadow-sm space-y-2.5 transition-colors">
                 <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center space-x-2 text-emerald-800 font-semibold">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <div className="flex items-center space-x-2 text-emerald-800 dark:text-emerald-300 font-semibold">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     <span>Live Coordinates Captured Successfully</span>
                   </div>
                   <a
                     href={`https://www.google.com/maps?q=${coords.lat},${coords.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1 text-brand-600 hover:text-brand-800 font-semibold text-[11px]"
+                    className="inline-flex items-center space-x-1 text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-300 font-semibold text-[11px]"
                   >
                     <span>Preview in Maps</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono bg-slate-50 dark:bg-slate-800/80 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/60">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block font-sans">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block font-sans">
                       Latitude
                     </span>
-                    <span className="font-semibold text-slate-800">{coords.lat.toFixed(6)}°</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{coords.lat.toFixed(6)}°</span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block font-sans">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block font-sans">
                       Longitude
                     </span>
-                    <span className="font-semibold text-slate-800">{coords.lng.toFixed(6)}°</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{coords.lng.toFixed(6)}°</span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block font-sans">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block font-sans">
                       GPS Accuracy
                     </span>
-                    <span className="text-slate-700 font-medium">
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">
                       {coords.accuracy ? `± ${Math.round(coords.accuracy)}m` : 'High'}
                     </span>
                   </div>
@@ -418,7 +418,7 @@ export const NewComplaint: React.FC = () => {
 
             {/* Landmark / Address input */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
                 Machinery Sector, Bay Number, or Physical Landmark (Forwarded to Admin)
               </label>
               <input
@@ -426,7 +426,7 @@ export const NewComplaint: React.FC = () => {
                 value={locationAddress}
                 onChange={(e) => setLocationAddress(e.target.value)}
                 placeholder="e.g. Sector B - Heavy Machinery Bay 4, Boiler House Mezzanine, or MCC Substation Panel 2"
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-brand-500 transition-all"
               />
             </div>
           </div>
@@ -434,26 +434,25 @@ export const NewComplaint: React.FC = () => {
           {/* ======================================================== */}
           {/* SECTION 2: PHOTO / IMAGE EVIDENCE UPLOAD */}
           {/* ======================================================== */}
-          <div className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+          <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 space-y-3 transition-colors">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 flex items-center justify-center shadow-xs">
                   <Camera className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
                     Incident Photo & Image Evidence
                   </h3>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     Attach machinery damage, pipe leaks, or gauge reading photos for administrator review.
                   </p>
                 </div>
               </div>
-
             </div>
 
             {imageError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center space-x-2">
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-center space-x-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
                 <span>{imageError}</span>
               </div>
@@ -464,18 +463,18 @@ export const NewComplaint: React.FC = () => {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
+                className={`border-2 border-dashed rounded-2xl p-6 text-center transition-colors ${
                   isDragging
-                    ? 'border-brand-500 bg-brand-50/50'
-                    : 'border-slate-300 hover:border-slate-400 bg-white'
+                    ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/40'
+                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-white dark:bg-slate-850'
                 }`}
               >
-                <div className="mx-auto w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mb-2">
+                <div className="mx-auto w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2">
                   <UploadCloud className="w-5 h-5" />
                 </div>
-                <p className="text-xs font-semibold text-slate-800">
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                   Drag and drop an image here, or{' '}
-                  <label className="text-brand-600 hover:text-brand-700 underline cursor-pointer font-bold">
+                  <label className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 underline cursor-pointer font-bold">
                     browse files
                     <input
                       type="file"
@@ -485,24 +484,24 @@ export const NewComplaint: React.FC = () => {
                     />
                   </label>
                 </p>
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
                   Supports JPEG, PNG, WebP up to 10MB. Camera capture enabled on mobile.
                 </p>
               </div>
             ) : (
-              <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm flex items-center justify-between gap-4">
+              <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between gap-4 transition-colors">
                 <div className="flex items-center space-x-3 truncate">
                   <img
                     src={imagePreview}
                     alt="Incident preview"
-                    className="w-16 h-16 rounded-lg object-cover border border-slate-200 shrink-0"
+                    className="w-16 h-16 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
                   />
                   <div className="truncate">
-                    <span className="text-xs font-bold text-slate-900 block truncate">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
                       {imageFileName || 'incident_image.jpg'}
                     </span>
-                    <span className="text-[10px] text-slate-400 block">{imageFileSize || 'Image attached'}</span>
-                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-semibold mt-0.5">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 block">{imageFileSize || 'Image attached'}</span>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
                       <CheckCircle2 className="w-3 h-3" /> Ready to forward to admin
                     </span>
                   </div>
@@ -511,7 +510,7 @@ export const NewComplaint: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleClearImage}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                  className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors shrink-0"
                   title="Remove image"
                 >
                   <X className="w-4 h-4" />
@@ -524,7 +523,7 @@ export const NewComplaint: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center space-x-2 px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm rounded-xl shadow-sm transition-colors disabled:opacity-50"
+              className="inline-flex items-center space-x-2 px-7 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-brand-600/25 hover:shadow-brand-600/35 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
               <span>{isSubmitting ? 'Filing Complaint...' : 'Submit Complaint to Admin'}</span>

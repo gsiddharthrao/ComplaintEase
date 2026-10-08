@@ -62,13 +62,16 @@ const PageLoader = () => (
   </div>
 );
 
+import { ThemeProvider } from './context/ThemeContext.js';
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RealtimeSyncListener />
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
+      <ThemeProvider>
+        <RealtimeSyncListener />
+        <AuthProvider>
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
@@ -127,6 +130,7 @@ export function App() {
           </Suspense>
         </BrowserRouter>
       </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

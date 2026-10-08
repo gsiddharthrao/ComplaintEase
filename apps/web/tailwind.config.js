@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -19,6 +20,10 @@ export default {
           800: '#075985',
           900: '#0c4a6e',
         },
+      },
+      boxShadow: {
+        'glow-brand': '0 0 20px -3px rgba(14, 165, 233, 0.35)',
+        'glow-emerald': '0 0 20px -3px rgba(16, 185, 129, 0.35)',
       },
     },
   },

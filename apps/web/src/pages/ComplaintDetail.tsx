@@ -165,35 +165,35 @@ export const ComplaintDetail: React.FC = () => {
       <div className="flex items-center justify-between">
         <Link
           to={userRole === 'admin' ? '/admin' : '/employee'}
-          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Incidents</span>
         </Link>
 
-        <span className="text-xs text-slate-400 font-mono">
+        <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">
           ID: {complaint.id.slice(0, 8)}... (v{complaint.version})
         </span>
       </div>
 
       {/* Main Header Card */}
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
             <StatusBadge status={currentStatus} />
             <PriorityBadge priority={complaint.priority} />
           </div>
 
-          <div className="text-xs text-slate-400">
+          <div className="text-xs text-slate-400 dark:text-slate-500">
             Filed: {new Date(complaint.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
           </div>
         </div>
 
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
           {complaint.title}
         </h1>
 
-        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap bg-slate-50/50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
           {complaint.description}
         </p>
 
@@ -202,14 +202,14 @@ export const ComplaintDetail: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
             {/* Live Location Card with Interactive OpenStreetMap */}
             {(complaint.location_lat || complaint.location_address) && (
-              <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-2.5">
+              <div className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/50 dark:bg-emerald-950/30 space-y-2.5 transition-colors">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-emerald-800 font-bold text-xs uppercase tracking-wider">
-                    <MapPin className="w-4 h-4 text-emerald-600" />
+                  <div className="flex items-center space-x-2 text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wider">
+                    <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     <span>Live Incident Location Map</span>
                   </div>
                   {complaint.location_address && (
-                    <span className="text-[11px] font-semibold text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-200 truncate max-w-[180px]">
+                    <span className="text-[11px] font-semibold text-emerald-900 dark:text-emerald-300 bg-white dark:bg-slate-900 px-2.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800 truncate max-w-[180px]">
                       {complaint.location_address}
                     </span>
                   )}
@@ -233,15 +233,15 @@ export const ComplaintDetail: React.FC = () => {
 
             {/* Attached Photo Evidence Card */}
             {complaint.image_url && (
-              <div className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/50 space-y-2">
+              <div className="p-4 rounded-2xl border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/50 dark:bg-indigo-950/30 space-y-2 transition-colors">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-indigo-800 font-bold text-xs uppercase tracking-wider">
-                    <ImageIcon className="w-4 h-4 text-indigo-600" />
+                  <div className="flex items-center space-x-2 text-indigo-800 dark:text-indigo-300 font-bold text-xs uppercase tracking-wider">
+                    <ImageIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     <span>Attached Evidence Photo</span>
                   </div>
                   <button
                     onClick={() => setShowImageModal(true)}
-                    className="inline-flex items-center space-x-1 text-xs font-semibold text-indigo-700 hover:text-indigo-900 bg-white px-2.5 py-1 rounded-md border border-indigo-200 transition-colors shadow-sm"
+                    className="inline-flex items-center space-x-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:text-indigo-900 dark:hover:text-white bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800 transition-colors shadow-sm"
                   >
                     <Maximize2 className="w-3 h-3" />
                     <span>Enlarge</span>
@@ -250,14 +250,14 @@ export const ComplaintDetail: React.FC = () => {
 
                 <div
                   onClick={() => setShowImageModal(true)}
-                  className="cursor-pointer group relative overflow-hidden rounded-lg border border-indigo-200 aspect-video max-h-40 bg-black/5"
+                  className="cursor-pointer group relative overflow-hidden rounded-xl border border-indigo-200 dark:border-indigo-800 aspect-video max-h-40 bg-black/5"
                 >
                   <img
                     src={complaint.image_url}
                     alt="Complaint evidence"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
-                  <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold">
+                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold">
                     <Maximize2 className="w-4 h-4 mr-1" /> Click to expand
                   </div>
                 </div>
@@ -267,36 +267,36 @@ export const ComplaintDetail: React.FC = () => {
         )}
 
         {/* Metadata grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100 text-xs text-slate-600">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
           <div className="flex items-center space-x-2">
-            <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
+            <Building2 className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
             <div className="truncate">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Department</span>
-              <span className="font-semibold text-slate-800">{complaint.department?.name || 'General'}</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block">Department</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{complaint.department?.name || 'General'}</span>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
-            <Tag className="w-4 h-4 text-slate-400 shrink-0" />
+            <Tag className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
             <div className="truncate">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Category</span>
-              <span className="font-semibold text-slate-800">{complaint.category?.name || 'General'}</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block">Category</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{complaint.category?.name || 'General'}</span>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
-            <User className="w-4 h-4 text-slate-400 shrink-0" />
+            <User className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
             <div className="truncate">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Submitted By</span>
-              <span className="font-semibold text-slate-800">{complaint.creator?.full_name || 'Staff'}</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block">Submitted By</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{complaint.creator?.full_name || 'Staff'}</span>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
-            <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+            <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
             <div className="truncate">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Assigned Worker</span>
-              <span className="font-semibold text-slate-800">
+              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block">Assigned Worker</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">
                 {complaint.assigned_to?.full_name || 'Unassigned'}
               </span>
             </div>
@@ -306,27 +306,27 @@ export const ComplaintDetail: React.FC = () => {
 
       {/* Rapid Worker Assignment & Fast Resolution Hub */}
       {userRole === 'admin' ? (
-        <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="bg-indigo-50/70 dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/60 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4 transition-colors">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h3 className="text-sm font-bold text-indigo-950 flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-indigo-600" />
+              <h3 className="text-sm font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span>Specialist Worker Assignment & Fast Resolution</span>
               </h3>
-              <p className="text-xs text-indigo-700 mt-0.5">
+              <p className="text-xs text-indigo-700 dark:text-indigo-400 mt-0.5">
                 Assign skilled workers and advance incident resolution in 1 click.
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500">Current Assignee:</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Current Assignee:</span>
               {complaint.assigned_to ? (
-                <span className="px-2.5 py-1 bg-white border border-indigo-200 rounded-lg text-xs font-bold text-indigo-900 shadow-sm flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-indigo-600" />
+                <span className="px-3 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-xl text-xs font-bold text-indigo-900 dark:text-indigo-200 shadow-sm flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                   {complaint.assigned_to.full_name}
                 </span>
               ) : (
-                <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold border border-amber-200">
+                <span className="px-3 py-1 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold border border-amber-200 dark:border-amber-800">
                   ⚠️ Unassigned
                 </span>
               )}
@@ -334,7 +334,7 @@ export const ComplaintDetail: React.FC = () => {
           </div>
 
           {transitionError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center space-x-2">
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-center space-x-2">
               <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
               <span>{transitionError}</span>
             </div>
@@ -343,8 +343,8 @@ export const ComplaintDetail: React.FC = () => {
           {/* Controls Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
             {/* Quick Worker Select */}
-            <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-indigo-200 shadow-sm">
-              <UserPlus className="w-4 h-4 text-indigo-600 shrink-0 ml-1" />
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800/80 shadow-sm">
+              <UserPlus className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 ml-1" />
               <select
                 value={assigneeId || complaint.assigned_to?.id || ''}
                 onChange={(e) => {
@@ -352,11 +352,11 @@ export const ComplaintDetail: React.FC = () => {
                   handleQuickAssign(e.target.value);
                 }}
                 disabled={assignMutation.isPending}
-                className="w-full text-xs font-semibold text-slate-800 bg-transparent outline-none cursor-pointer"
+                className="w-full text-xs font-semibold text-slate-800 dark:text-slate-100 bg-transparent outline-none cursor-pointer"
               >
-                <option value="">⚡ Assign Worker / Field Specialist...</option>
+                <option value="" className="dark:bg-slate-800">⚡ Assign Worker / Field Specialist...</option>
                 {users.map((u) => (
-                  <option key={u.id} value={u.id}>
+                  <option key={u.id} value={u.id} className="dark:bg-slate-800">
                     {u.full_name} ({u.role})
                   </option>
                 ))}
@@ -370,10 +370,10 @@ export const ComplaintDetail: React.FC = () => {
                   type="button"
                   onClick={handleQuickInProgress}
                   disabled={transitionMutation.isPending}
-                  className="flex-1 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5"
                 >
                   <Zap className="w-3.5 h-3.5" />
-                  <span>Start Work (In Progress)</span>
+                  <span>Start Work</span>
                 </button>
               )}
 
@@ -382,7 +382,7 @@ export const ComplaintDetail: React.FC = () => {
                   type="button"
                   onClick={handleQuickResolve}
                   disabled={transitionMutation.isPending}
-                  className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Mark Resolved ✓</span>
@@ -394,7 +394,7 @@ export const ComplaintDetail: React.FC = () => {
                   type="button"
                   onClick={() => handleExecuteTransition('closed')}
                   disabled={transitionMutation.isPending}
-                  className="flex-1 py-2.5 px-3 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 px-3 bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
                 >
                   <span>Close Ticket 🔒</span>
                 </button>
@@ -403,24 +403,24 @@ export const ComplaintDetail: React.FC = () => {
           </div>
 
           {/* Quick Note Input */}
-          <div className="flex items-center gap-2 bg-white/90 p-2 rounded-xl border border-indigo-100">
-            <span className="text-[11px] font-semibold text-slate-500 shrink-0">Note (Optional):</span>
+          <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 p-2.5 rounded-xl border border-indigo-100 dark:border-indigo-900/60">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">Note (Optional):</span>
             <input
               type="text"
               value={transitionNote}
               onChange={(e) => setTransitionNote(e.target.value)}
               placeholder="e.g. Technician replaced hardware components and verified connectivity..."
-              className="w-full text-xs text-slate-800 bg-transparent outline-none"
+              className="w-full text-xs text-slate-800 dark:text-slate-100 bg-transparent outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
           </div>
         </div>
       ) : (
         /* Employee Actions: Reopen if resolved */
         currentStatus === 'resolved' && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-3xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition-colors">
             <div>
-              <h4 className="text-sm font-bold text-amber-900">Is this incident still not resolved?</h4>
-              <p className="text-xs text-amber-700">You can reopen this complaint to have staff review it again.</p>
+              <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">Is this incident still not resolved?</h4>
+              <p className="text-xs text-amber-700 dark:text-amber-400">You can reopen this complaint to have staff review it again.</p>
             </div>
             <button
               type="button"
@@ -436,14 +436,14 @@ export const ComplaintDetail: React.FC = () => {
       )}
 
       {/* Tabs: Timeline vs Discussion vs Attachments */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="border-b border-slate-200 flex">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+        <div className="border-b border-slate-200 dark:border-slate-800 flex">
           <button
             onClick={() => setActiveTab('timeline')}
             className={`flex-1 py-3 text-xs sm:text-sm font-semibold border-b-2 text-center transition-colors ${
               activeTab === 'timeline'
-                ? 'border-brand-600 text-brand-600 bg-brand-50/20'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             Timeline & Audit History
@@ -452,8 +452,8 @@ export const ComplaintDetail: React.FC = () => {
             onClick={() => setActiveTab('comments')}
             className={`flex-1 py-3 text-xs sm:text-sm font-semibold border-b-2 text-center transition-colors ${
               activeTab === 'comments'
-                ? 'border-brand-600 text-brand-600 bg-brand-50/20'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             Discussion Thread
