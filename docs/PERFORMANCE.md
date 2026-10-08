@@ -16,7 +16,7 @@ psql $DATABASE_URL -f scripts/explain-queries.sql
 ### B. HTTP Load Testing (k6)
 Run k6 against the local or deployed API server:
 ```bash
-# 1. Obtain an authenticated employee or dept head JWT
+# 1. Obtain an authenticated employee or admin JWT
 export AUTH_TOKEN="<your_jwt_here>"
 export API_URL="http://localhost:3000/api/v1"
 
@@ -34,7 +34,7 @@ npx lighthouse-ci collect --url="http://localhost:5173"
 
 ## 2. Query Optimization (EXPLAIN ANALYZE)
 
-### Query 1: Department Head Triage Listing
+### Query 1: Admin / Department Triage Listing
 **SQL:**
 ```sql
 SELECT c.id, c.title, c.status, c.priority, c.created_at, d.name, p.full_name
@@ -92,8 +92,8 @@ LIMIT 20;
 - **Baseline (Unindexed `ILIKE`):**
   - Execution Plan: `Seq Scan on complaints` with string concatenation per row.
   - Execution Time: `TODO: measure` (~60ms - 120ms for 10,000 rows).
-- **Optimized (GIN Trigram Index: `idx_complaints_trgm_search`):**
-  - Execution Plan: `Bitmap Index Scan on idx_complaints_trgm_search`.
+- **Optimized (GIN Trigram Index: `idx_complaints_search`):**
+  - Execution Plan: `Bitmap Index Scan on idx_complaints_search`.
   - Execution Time: `TODO: measure` (~3ms - 8ms).
 
 ---
@@ -113,18 +113,19 @@ LIMIT 20;
 
 ## 4. Frontend Bundle & Lighthouse Audits
 
-### Production Build Distribution (Verified via Vite v5.4.21 Build)
+### Production Build Distribution (Verified via Current Vite Build)
 ```
-dist/index.html                              0.82 kB │ gzip:   0.47 kB
-dist/assets/index-ccHoSFhd.css              27.21 kB │ gzip:   5.46 kB
-dist/assets/Register-ZRg22QWX.js             3.99 kB │ gzip:   1.31 kB
-dist/assets/Login-CgYLDd8C.js                4.85 kB │ gzip:   1.84 kB
-dist/assets/NewComplaint-MQBSbpxa.js         4.99 kB │ gzip:   1.62 kB
-dist/assets/EmployeeDashboard-BIzqcpxr.js    6.70 kB │ gzip:   2.16 kB
-dist/assets/AdminPanel-D9CpFUCi.js          11.83 kB │ gzip:   2.94 kB
-dist/assets/ComplaintDetail-BcypoLLb.js     21.50 kB │ gzip:   5.59 kB
-dist/assets/zod-CgfoJqL3.js                 33.01 kB │ gzip:  12.02 kB
-dist/assets/index-CYMebWYO.js              529.12 kB │ gzip: 147.26 kB
+dist/index.html                               0.82 kB
+dist/assets/index-BTrabvF7.css               56.60 kB
+dist/assets/index-BL49s3CS.js               463.91 kB
+dist/assets/NewComplaint-DbqNeIGS.js        106.26 kB
+dist/assets/AdminPanel-plqrgZFS.js           35.50 kB
+dist/assets/ComplaintDetail-9H_179rL.js      31.36 kB
+dist/assets/EmployeeDashboard-DIkDXgdV.js    16.08 kB
+dist/assets/Login-B53euaTU.js                13.53 kB
+dist/assets/LocationMap-Dmg3wfuq.js           6.93 kB
+dist/assets/PriorityBadge-BsBRl3NI.js         3.40 kB
+dist/assets/Register-BuBl7JnY.js              0.14 kB
 ```
 
 ### Lighthouse Audit Scores
@@ -147,4 +148,3 @@ dist/assets/index-CYMebWYO.js              529.12 kB │ gzip: 147.26 kB
 2. **Predictive Composite Indexes:** Avoided runtime sorting by designing indexes whose column ordering matches query filters and `ORDER BY created_at DESC`.
 3. **Route-Based Code Splitting:** Employs `React.lazy()` so browser clients only load the JavaScript chunks for the specific page being viewed.
 4. **Windowed Virtual Scrolling:** Avoids rendering thousands of DOM nodes during high-volume complaint searches using `VirtualList`.
-

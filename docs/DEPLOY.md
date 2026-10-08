@@ -20,34 +20,38 @@ Follow these steps to deploy ComplaintEase live to **Supabase**, **Render**, and
    supabase login
    supabase link --project-ref <your-project-ref>
    ```
-   Apply all migrations in sequential order:
+   Apply all migrations in sequential order (or execute `001_extensions_and_enums.sql` through `009_complaint_location_image.sql` in the Supabase SQL Editor):
    ```bash
    supabase db push
    ```
 
-3. **Run the Database Seed & Create Demo Users:**
-   In your terminal, navigate to the API directory and run the user provisioning script:
+3. **Populate Relational Seed Data:**
+   - Open the Supabase SQL Editor.
+   - Run `supabase/seed.sql` to populate initial departments, categories, and synthetic test complaints.
+
+4. **Provision Initial Administrator:**
+   In your terminal, navigate to the API directory and run the user provisioning script using your administrator credentials:
    ```bash
    cd apps/api
    SUPABASE_URL="https://<project>.supabase.co" \
    SUPABASE_ANON_KEY="<your-anon-key>" \
    SUPABASE_SERVICE_ROLE_KEY="<your-service-role-key>" \
+   ADMIN_EMAIL="admin@yourdomain.com" \
+   ADMIN_PASSWORD="YourSecurePassword123!" \
    pnpm run seed
    ```
-   Then apply the relational seed data (departments, categories, and test complaints) using the Supabase SQL Editor:
-   - Open Supabase SQL Editor.
-   - Paste the contents of `supabase/seed.sql` and run.
+   Alternatively, pass them as arguments: `pnpm seed <email> <password> [name]`.
 
-4. **Verify Storage Bucket:**
-   - Check **Storage** in the Supabase Dashboard. Ensure the private bucket named `attachments` exists.
+5. **Verify Storage Bucket:**
+   - Check **Storage** in the Supabase Dashboard. Ensure the private bucket named `attachments` exists (created automatically by migration 007).
 
 ---
 
 ## 2. Backend Deployment on Render
 
 1. Log in to [Render](https://render.com).
-2. Click **New +** → **Blueprint** or **Web Service**.
-3. Connect your GitHub repository.
+2. Click **New +** → **Web Service**.
+3. Connect your GitHub repository (`gsiddharthrao/ComplaintEase-Enterprise-`).
 4. Select **Docker** as the runtime:
    - **Dockerfile Path:** `./apps/api/Dockerfile`
    - **Docker Context:** `.` (root directory)
@@ -67,10 +71,10 @@ Follow these steps to deploy ComplaintEase live to **Supabase**, **Render**, and
 
 1. Log in to [Vercel](https://vercel.com).
 2. Click **Add New...** → **Project**.
-3. Import your GitHub repository.
-4. Set the following build settings:
+3. Import your GitHub repository (`gsiddharthrao/ComplaintEase-Enterprise-`).
+4. Set the build settings:
    - **Framework Preset:** Vite
-   - **Root Directory:** Leave as root or select `apps/web` (with `vercel.json` at root, leaving as root is recommended)
+   - **Root Directory:** `./` (root directory with `vercel.json`)
    - **Build Command:** `pnpm --filter @complaintease/shared build && pnpm --filter @complaintease/web build`
    - **Output Directory:** `apps/web/dist`
 5. Configure Environment Variables in the Vercel dashboard:
@@ -84,8 +88,7 @@ Follow these steps to deploy ComplaintEase live to **Supabase**, **Render**, and
 ## 4. Post-Deployment Verification
 
 1. Open your Vercel URL in a browser.
-2. Test login with the seeded demo credentials:
-   - Employee: `employee@demo.com` / `Demo1234!`
-   - Admin: `admin@demo.com` / `Demo1234!`
-3. Verify that creating a complaint works, status transitions function properly, and real-time updates broadcast over WebSockets.
-
+2. Verify Admin Login using the credentials provisioned in Step 1.4 via the Command Center tab.
+3. Test Staff Self-Registration via the Staff Portal tab (`/login?portal=staff&mode=register`).
+4. Verify incident filing with GPS coordinates and photo attachment.
+5. In the Command Center, verify real-time status transitions, specialist assignment, and WebSocket notifications.

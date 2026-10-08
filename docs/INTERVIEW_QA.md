@@ -1,13 +1,13 @@
 # 40 Technical Interview Questions & Answers Specific to ComplaintEase
 
-This comprehensive guide is prepared specifically for CSE students defending this enterprise architecture in technical interviews.
+This comprehensive guide is prepared specifically for defending this enterprise architecture in technical interviews.
 
 ---
 
 ## Category 1: System Design & Architecture
 
 ### 1. What is the high-level architecture of ComplaintEase, and why did you choose it?
-> **Answer:** ComplaintEase is a modern full-stack web application structured as an isolated pnpm monorepo. It features a React 18 + Vite SPA presentation layer, a stateless Node 20 / Express application layer, and a PostgreSQL database layer managed through Supabase. The key design pattern is **defense-in-depth**: authentication and validation happen at the API layer, while the non-negotiable security boundary (Row Level Security and append-only triggers) is enforced directly inside the database engine.
+> **Answer:** ComplaintEase is a modern full-stack web application structured as an isolated pnpm monorepo. It features a React 18 + Vite SPA presentation layer, a stateless Node 20 / Express application layer, and a PostgreSQL database layer managed through Supabase. The key design pattern is **defense-in-depth**: authentication and validation happen at the API layer, while the non-negotiable security boundary (Row Level Security and tamper-resistant triggers) is enforced directly inside the database engine.
 
 ### 2. Why use a monorepo instead of separate git repositories?
 > **Answer:** Monorepos allow sharing TypeScript interfaces and Zod validation schemas across both frontend and backend through the `@complaintease/shared` package. This eliminates code drift, enables end-to-end type safety, guarantees that form validations in React match API validations in Express, and simplifies atomic CI/CD testing.
@@ -24,7 +24,7 @@ This comprehensive guide is prepared specifically for CSE students defending thi
 > 8. The JSON response flows back to the Express controller, through the error handler (if applicable), and into TanStack Query cache.
 
 ### 4. What is the difference between client-side route guards and database RLS?
-> **Answer:** Client-side route guards (`<ProtectedRoute>`) are purely UX conveniences that redirect unauthorized users to their dashboard. Any user can manipulate client-side JavaScript or send raw HTTP requests via `curl`. In contrast, PostgreSQL **Row Level Security (RLS)** is an unbypassable kernel-level guarantee: regardless of what query or API endpoint is hit, PostgreSQL inspects the user's cryptographic identity (`auth.uid()`) and returns only authorized rows.
+> **Answer:** Client-side route guards (`<ProtectedRoute>`) are purely UX conveniences that redirect unauthorized users to their dashboard. Any user can manipulate client-side JavaScript or send raw HTTP requests via `curl`. In contrast, PostgreSQL **Row Level Security (RLS)** is an unbypassable database-level boundary: regardless of what query or API endpoint is hit, PostgreSQL inspects the user's cryptographic identity (`auth.uid()`) and returns only authorized rows.
 
 ### 5. Why did you choose TanStack Query over Redux or Zustand for server state?
 > **Answer:** Server state (complaints, comments, notifications) is fundamentally different from client UI state (modals, form inputs). Server state is asynchronous, shared, and can become stale. TanStack Query provides out-of-the-box caching, background revalidation (`staleTime`), deduping of concurrent requests, optimistic updates, and clean cache invalidation when Supabase Realtime WebSocket events arrive.
@@ -84,7 +84,7 @@ This comprehensive guide is prepared specifically for CSE students defending thi
 > ```sql
 > current_user_role() = 'employee' AND created_by = auth.uid()
 > ```
-> This ensures regular employees can never view tickets filed by colleagues. Administrators access complaints through `complaints_select_admin` (`current_user_role() = 'admin'`), giving global oversight while database RLS strictly isolates employee records.
+> This ensures regular employees can only view tickets they personally created. Administrators access complaints through `complaints_select_admin` (`current_user_role() = 'admin'`), giving comprehensive oversight while database RLS strictly isolates employee records.
 
 ### 16. How do internal staff comments stay hidden from employees?
 > **Answer:** On the `comments` table, `comments_select_employee` includes:
@@ -117,17 +117,17 @@ This comprehensive guide is prepared specifically for CSE students defending thi
 > **Answer:** In PostgreSQL's default `READ COMMITTED` isolation level, without `FOR UPDATE`, two concurrent transactions could read the same version before either writes. `FOR UPDATE` places an exclusive write lock on the target row, forcing concurrent callers to block until the active transition transaction commits or rolls back.
 
 ### 21. How do you block users from doing direct `UPDATE complaints SET status = ...`?
-> **Answer:** We implemented a `BEFORE UPDATE` trigger on `complaints` (`trg_block_direct_status_update`). When `OLD.status IS DISTINCT FROM NEW.status`, it inspects a transaction session variable (`current_setting('complaintease.in_transition', true)`). If the flag is not `'true'`, it raises SQLSTATE `P0005`, completely prohibiting direct updates.
+> **Answer:** We implemented a `BEFORE UPDATE` trigger on `complaints` (`trg_block_direct_status_update`). When `OLD.status IS DISTINCT FROM NEW.status`, it inspects a transaction session variable (`current_setting('complaintease.in_transition', true)`). If the flag is not `'true'`, it raises SQLSTATE `P0005`, prohibiting direct status updates outside `transition_complaint()`.
 
 ### 22. What are the terminal states in your state machine?
-> **Answer:** `closed` and `rejected`. In the `allowed_transitions` table, neither status has outgoing valid transitions.
+> **Answer:** `closed` and `rejected`. In the `ALLOWED_TRANSITIONS` rules, neither status has outgoing valid transitions.
 
 ### 23. Can an employee transition a complaint?
-> **Answer:** An employee can only trigger a transition from `resolved` to `reopened` on their own complaint (`p_new_status = 'reopened' AND v_complaint.created_by = auth.uid()`). All other lifecycle progressions are restricted to department heads and admins.
+> **Answer:** An employee can only trigger a transition from `resolved` to `reopened` on their own complaint (`p_new_status = 'reopened' AND v_complaint.created_by = auth.uid()`). All other lifecycle progressions are restricted to admins.
 
-### 24. What makes the `audit_logs` table tamper-proof?
+### 24. What makes the `audit_logs` table tamper-resistant?
 > **Answer:**
-> 1. We attach a `BEFORE UPDATE OR DELETE` trigger (`trg_protect_audit_logs`) that unconditionally throws SQLSTATE `55000` (`Audit log table is append-only`).
+> 1. We attach a `BEFORE UPDATE OR DELETE` trigger (`trg_protect_audit_logs`) that unconditionally throws SQLSTATE `P0006` (`audit_logs is append-only. UPDATE and DELETE are not permitted.`).
 > 2. We revoke `UPDATE`, `DELETE`, and `TRUNCATE` privileges on the table from `authenticated`, `anon`, and `public` roles.
 
 ---
@@ -140,23 +140,23 @@ This comprehensive guide is prepared specifically for CSE students defending thi
 > For equality filters combined with sorting (`department_id = X AND status = Y ORDER BY created_at DESC`), putting equality columns first followed by the sorting column allows PostgreSQL to find the matching slice and read rows in sorted order without an extra sort step.
 
 ### 26. Explain the index `idx_complaints_dept_status_created`.
-> **Answer:** It indexes `(department_id, status, created_at DESC)`. When a department head opens the triage board filtered by department and status, PostgreSQL jumps directly to the matching subset and traverses the B-tree backward in `created_at DESC` order, eliminating both table scans and in-memory quicksorts.
+> **Answer:** It indexes `(department_id, status, created_at DESC)`. When an administrator opens the triage board filtered by department and status, PostgreSQL jumps directly to the matching subset and traverses the B-tree backward in `created_at DESC` order, eliminating both table scans and in-memory quicksorts.
 
 ### 27. What is a Partial Index, and where did you use it?
 > **Answer:** A partial index includes a `WHERE` clause so it only indexes rows satisfying a specific condition:
 > ```sql
-> CREATE INDEX idx_assignments_assigned_active
+> CREATE INDEX idx_assignments_assigned_status
 > ON assignments (assigned_to, is_active) WHERE is_active = true;
 > ```
-> In enterprise systems, 99% of assignment records are historical (`is_active = false`). Indexing only active assignments keeps the index size tiny (often fitting completely in CPU L2/L3 cache) and accelerates assignee lookups.
+> In enterprise systems, most assignment records are historical (`is_active = false`). Indexing only active assignments keeps the index size tiny (often fitting completely in memory) and accelerates assignee lookups.
 
 ### 28. How does the full-text search index work?
 > **Answer:** It uses the `pg_trgm` extension to build a Generalized Inverted Index (GIN) on trigrams of `(title || ' ' || description)`:
 > ```sql
-> CREATE INDEX idx_complaints_trgm_search
+> CREATE INDEX idx_complaints_search
 > ON complaints USING gin ((title || ' ' || description) gin_trgm_ops);
 > ```
-> A standard B-tree cannot optimize leading wildcard searches (`ILIKE '%keyword%'`). Trigram indexes break words into 3-character substrings, enabling fast fuzzy substring matching over 10,000+ rows.
+> A standard B-tree cannot optimize leading wildcard searches (`ILIKE '%keyword%'`). Trigram indexes break words into 3-character substrings, enabling fast fuzzy substring matching over large dataset sizes.
 
 ### 29. What is Keyset Pagination, and why is it superior to `OFFSET`?
 > **Answer:** In offset pagination (`LIMIT 20 OFFSET 50000`), the database must scan and discard 50,000 rows to return 20, creating $O(N)$ performance degradation and I/O thrashing.
@@ -183,7 +183,7 @@ This comprehensive guide is prepared specifically for CSE students defending thi
 > **Answer:** The `service_role` key completely bypasses Row Level Security. If used for user queries, the database runs everything with superuser privileges, forfeiting database-level security and placing the entire burden of access control on application code.
 
 ### 32. What is the centralized error handling pattern in `errorHandler`?
-> **Answer:** The middleware intercepts all errors passed to `next(err)`. It maps known PostgreSQL error codes (`P0001` -> 400, `P0002` -> 404, `P0003` -> 409, `42501` -> 403, `55000` -> 403) and formats every error into a predictable JSON shape containing `code`, `message`, `details`, and `requestId`.
+> **Answer:** The middleware intercepts all errors passed to `next(err)`. It maps known PostgreSQL error codes (`P0001` -> 400, `P0002` -> 404, `P0003` -> 409, `42501` -> 403, `P0006` -> 403) and formats every error into a predictable JSON shape containing `code`, `message`, `details`, and `requestId`.
 
 ### 33. Why use `pino` instead of `console.log`?
 > **Answer:** `console.log` is synchronous and blocks the Node.js event loop during heavy I/O. `pino` is an asynchronous, high-throughput structured logger that outputs JSON logs with request IDs, timestamps, and log levels (`info`, `warn`, `error`), making logs easily searchable in tools like Datadog, Grafana Loki, or CloudWatch.
@@ -199,7 +199,7 @@ This comprehensive guide is prepared specifically for CSE students defending thi
 > **Answer:** Without code splitting, Vite bundles the entire application into a single massive JavaScript file. By wrapping pages in `lazy(() => import('./pages/...'))`, Vite generates separate chunk files for each page. The user's browser only downloads the bundle for the page they are viewing, reducing First Contentful Paint (FCP) and Time to Interactive (TTI).
 
 ### 36. How does the `VirtualList` component achieve 60 FPS scrolling?
-> **Answer:** When rendering 10,000 complaints, standard React DOM rendering creates tens of thousands of DOM elements, consuming huge memory and freezing the main thread. `VirtualList` monitors scroll position and calculates the visible window, rendering only the ~10 items visible on screen plus a buffer. As the user scrolls, it updates the transform offset and reuses DOM elements.
+> **Answer:** When rendering thousands of complaints, standard React DOM rendering creates tens of thousands of DOM elements, consuming huge memory and freezing the main thread. `VirtualList` monitors scroll position and calculates the visible window, rendering only the ~10 items visible on screen plus a buffer. As the user scrolls, it updates the transform offset and reuses DOM elements.
 
 ### 37. Why use React Hook Form with Zod resolvers?
 > **Answer:** Traditional controlled React forms trigger a full component re-render on every keystroke. React Hook Form uses uncontrolled inputs with native refs, minimizing re-renders. Paired with `@hookform/resolvers/zod`, it validates form inputs using the shared Zod schema from `@complaintease/shared`.
@@ -224,4 +224,3 @@ This comprehensive guide is prepared specifically for CSE students defending thi
 > **Answer:**
 > 1. **GraphQL / tRPC:** Instead of custom REST endpoints, tRPC would provide end-to-end type safety between backend and frontend without manual fetch clients.
 > 2. **Outbox Pattern for Notifications:** Instead of creating notifications directly inside triggers, write events to a transactional Outbox table and use background workers (e.g. BullMQ / Temporal) to handle notifications, WebSockets, and external email delivery.
-

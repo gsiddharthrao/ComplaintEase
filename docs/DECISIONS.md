@@ -21,7 +21,7 @@ This document captures every major engineering trade-off, architectural choice, 
 - **Alternatives Rejected:**
   - *Application-layer FSM:* Checking status transitions and versions purely inside Express handlers.
 - **Trade-offs & Rationale:**
-  - *Pros:* Guarantees transactional atomicity (ACID). No race condition can occur between status modification and history logging. Bypassing the API through direct SQL or third-party webhooks cannot violate business invariants.
+  - *Pros:* Guarantees transactional atomicity (ACID) across status modification, row versioning, and status history logging within a single PostgreSQL transaction. Bypassing the API through direct SQL or external clients cannot violate business invariants.
   - *Cons:* Requires PL/pgSQL development and migrations rather than purely TypeScript code.
 
 ---
@@ -37,13 +37,13 @@ This document captures every major engineering trade-off, architectural choice, 
 
 ---
 
-## ADR 4: Tamper-Proof Audit Triggers vs. Application Audit Logging
+## ADR 4: Tamper-Resistant Audit Triggers vs. Application Audit Logging
 
-- **Decision:** The `audit_logs` table is populated via PostgreSQL `AFTER INSERT OR UPDATE OR DELETE` triggers using `row_to_json()` diffs. A `BEFORE UPDATE OR DELETE` trigger aborts any attempt to alter or delete audit rows (SQLSTATE `55000`).
+- **Decision:** The `audit_logs` table is populated via PostgreSQL `AFTER INSERT OR UPDATE OR DELETE` triggers using `row_to_json()` diffs. A `BEFORE UPDATE OR DELETE` trigger aborts any attempt to alter or delete audit rows with error `P0006`.
 - **Alternatives Rejected:**
   - *Express Middleware Audit Logger:* Logging changes by sending an insert to `audit_logs` after successful HTTP requests.
 - **Trade-offs & Rationale:**
-  - *Pros:* Application crashes or network disconnections cannot cause missing audit entries. Even superusers or malicious admins cannot alter the historical audit trail without destroying the table trigger.
+  - *Pros:* Application crashes or network disconnections cannot cause missing audit entries. Provides tamper resistance against application-layer modifications without relying on external logging agents.
   - *Cons:* Modest write overhead on high-frequency tables (mitigated in bulk seed by temporarily toggling the trigger).
 
 ---
@@ -76,19 +76,17 @@ This document captures every major engineering trade-off, architectural choice, 
 - **Alternatives Rejected:**
   - *Three-Tier Model with `dept_head`:* Introducing intermediate departmental managers between regular staff and administrators.
 - **Trade-offs & Rationale:**
-  - *Pros:* Dramatically simplifies database RLS policy evaluation trees (eliminates nested department-boundary lookups per row) and prevents authorization deadlock when department heads transition between divisions. Administrators have centralized authority to assign specialists, triage tickets, and advance lifecycle transitions across all departments.
-  - *Cons:* In organizations with thousands of staff, admin oversight may need to be delegated to specific departmental groups in future iterations.
+  - *Pros:* Dramatically simplifies database RLS policy evaluation trees (eliminates nested department-boundary lookups per row) and prevents authorization deadlocks. Administrators have centralized authority to assign specialists, triage tickets, and advance lifecycle transitions across all departments.
+  - *Cons:* In organizations with thousands of staff across siloed business units, admin oversight may need to be partitioned into sub-groups in future iterations.
 
 ---
 
 ## ADR 8: Live Geolocation Capture and Photo Evidence Pipeline
 
-- **Decision:** Employees filing complaints can capture live GPS coordinates (`navigator.geolocation.getCurrentPosition`), physical landmark/room descriptions, and upload photographic evidence (stored as high-resolution data URLs in demo mode and Supabase Storage in cloud mode). These fields are indexed (`idx_complaints_location`) and forwarded in real time to the Administrator's Incident & Geotag Feed with direct Google Maps navigation links and high-res lightbox modals.
+- **Decision:** Employees filing complaints can capture live GPS coordinates (`navigator.geolocation.getCurrentPosition`), physical landmark/room descriptions, and upload photographic evidence (stored directly with the incident record via `image_url` and optionally via the `attachments` storage pipeline). These fields are indexed (`idx_complaints_location`) and forwarded in real time to the Administrator's Incident & Geotag Feed with direct Google Maps navigation links and high-res lightbox modals.
 - **Alternatives Rejected:**
   - *Text-Only Location Description:* Requiring users to describe locations in freeform text without verified GPS telemetry.
   - *Blocking Offline Uploads without Cloud Storage:* Enforcing mandatory S3/Supabase bucket roundtrips for local evaluation, which causes file upload failures during local demos without active cloud credentials.
 - **Trade-offs & Rationale:**
   - *Pros:* Direct GPS telemetry and photographic evidence drastically cut incident response times by allowing maintenance staff to pinpoint exact hardware/facility locations on campus. Visual evidence prevents fraudulent or ambiguous claims.
   - *Cons:* Browser privacy settings may prompt or block GPS permissions on desktop environments. Mitigated by providing manual physical landmark/bay text inputs as a fallback.
-
-

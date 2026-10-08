@@ -1,7 +1,7 @@
 # Complaint Lifecycle State Machine
 
 ComplaintEase models complaints as a deterministic **Finite State Machine (FSM)**.
-Status cannot be updated directly through SQL UPDATE statements; it must transition through the transactional database function `transition_complaint()`.
+Status cannot be updated directly through raw SQL `UPDATE` statements; it is strictly governed through the transactional database function `transition_complaint()`.
 
 ---
 
@@ -11,23 +11,34 @@ Status cannot be updated directly through SQL UPDATE statements; it must transit
 stateDiagram-v2
     [*] --> submitted : Initial Employee Submission
 
-    submitted --> under_review : Admin Review
+    submitted --> under_review : Admin Triage
+    submitted --> assigned : Direct Specialist Assignment
+    submitted --> in_progress : Direct Fast-Track Investigation
     submitted --> rejected : Reject (Invalid / Duplicate)
 
     under_review --> assigned : Assign Specialist
+    under_review --> in_progress : Begin Work
+    under_review --> resolved : Rapid Resolution
     under_review --> rejected : Reject
 
     assigned --> in_progress : Specialist Begins Work
+    assigned --> resolved : Fast-track Mitigation
+    assigned --> closed : Direct Archival
     assigned --> rejected : Reject
 
     in_progress --> resolved : Incident Mitigated / Fixed
-    in_progress --> rejected : Reject (Unfixable / Invalid)
+    in_progress --> assigned : Reassign Specialist
+    in_progress --> closed : Direct Close
+    in_progress --> rejected : Reject (Unfixable / Out of scope)
 
-    resolved --> closed : Admin Closes
-    resolved --> reopened : Employee unsatisfied with resolution
+    resolved --> closed : Archival Closure
+    resolved --> reopened : Employee Unsatisfied (Reopen SLA)
+    resolved --> in_progress : Re-evaluate / Resume Work
 
     reopened --> in_progress : Specialist Resumes Work
-    reopened --> rejected : Reject after reopen
+    reopened --> assigned : Reassign Specialist
+    reopened --> resolved : Re-verified Resolution
+    reopened --> rejected : Reject upon Re-examination
 
     closed --> [*] : Terminal State
     rejected --> [*] : Terminal State
@@ -35,45 +46,40 @@ stateDiagram-v2
 
 ---
 
-## 2. Allowed Transition Rules (`allowed_transitions` Table)
+## 2. Transition Rules Matrix (`ALLOWED_TRANSITIONS`)
 
-| Current Status (`from_status`) | Allowed Next Status (`to_status`) | Permitted Roles | Business Rationale |
+The transitions configured in `packages/shared/src/types/enums.ts` and validated by the backend service are defined as follows:
+
+| Current Status (`from_status`) | Allowed Target Statuses (`to_status`) | Permitted Roles | Operational Rationale |
 |---|---|---|---|
-| `submitted` | `under_review` | `admin` | Admin begins initial triage. |
-| `submitted` | `rejected` | `admin` | Immediate rejection for spam, duplicate, or irrelevant filings. |
-| `under_review` | `assigned` | `admin` | Admin routes incident to a designated specialist. |
-| `under_review` | `rejected` | `admin` | Rejected after preliminary evaluation. |
-| `assigned` | `in_progress` | `admin` | Assigned engineer or specialist starts active investigation. |
-| `assigned` | `rejected` | `admin` | Specialist verifies ticket is out of scope or invalid. |
-| `in_progress` | `resolved` | `admin` | Remediation completed; sets `resolved_at = now()`. |
-| `in_progress` | `rejected` | `admin` | Unresolvable constraint or policy violation identified. |
-| `resolved` | `closed` | `admin` | Archival closure after satisfactory grace period. |
-| `resolved` | `reopened` | **`employee`**, `admin` | **Employee empowerment:** Creator can reopen within SLA if issue persists. Clears `resolved_at`. |
-| `reopened` | `in_progress` | `admin` | Specialist resumes remediation work. |
-| `reopened` | `rejected` | `admin` | Issue confirmed resolved or rejected upon re-examination. |
-| `closed` | *(none)* | *(none)* | **Terminal State:** No further state transitions allowed. |
-| `rejected` | *(none)* | *(none)* | **Terminal State:** Permanently archived as rejected. |
+| `submitted` | `under_review`, `assigned`, `in_progress`, `rejected` | `admin` | Triage, direct specialist assignment, or immediate rejection for spam/duplicate filings. |
+| `under_review` | `assigned`, `in_progress`, `resolved`, `rejected` | `admin` | Routing to assigned worker, direct investigation, or rapid dismissal. |
+| `assigned` | `in_progress`, `resolved`, `closed`, `rejected` | `admin` | Investigation commencement, immediate sign-off, or closure. |
+| `in_progress` | `resolved`, `assigned`, `closed`, `rejected` | `admin` | Remediation completion (sets `resolved_at = now()`), worker reassignment, or rejection. |
+| `resolved` | `closed`, `reopened`, `in_progress` | `admin`, **`employee`** (reopen only) | Creator empowerment to reopen if unsatisfied with the fix; admin closure or resume. |
+| `reopened` | `in_progress`, `assigned`, `resolved`, `rejected` | `admin` | Secondary triage and re-assignment to active remediation. |
+| `closed` | *(none)* | *(none)* | **Terminal State:** Read-only historical record; immutable. |
+| `rejected` | *(none)* | *(none)* | **Terminal State:** Archival state for invalid or unserviceable complaints. |
 
 ---
 
-## 3. Concurrency & Optimistic Locking (`version` Column)
+## 3. Concurrency & Locking Mechanics
 
-### The Lost-Update Problem in Distributed Systems
-Imagine two administrators viewing the same complaint at `version = 3`:
-1. **User A** decides to transition status to `in_progress`.
-2. Simultaneously, **User B** decides to `reject` the complaint.
-3. Without concurrency control, User B's change could silently overwrite User A's work without User B ever realizing the status was progressed.
+### Concurrency Challenges in Ticket Lifecycles
+In high-throughput operational systems, multiple staff members or automated processes may attempt to act on the same incident ticket concurrently.
+Without transactional locking and version verification, concurrent requests can lead to lost updates or illegal state transitions (e.g. attempting to resolve an already-closed or rejected incident).
 
-### The ComplaintEase Solution: Pessimistic Lock + Optimistic Version Check
-Within `transition_complaint()`:
+### Hybrid Pessimistic / Optimistic Concurrency Control
+ComplaintEase implements a hybrid concurrency control model at the PostgreSQL layer within `transition_complaint()`:
+
 ```sql
--- 1. Row-level exclusive lock (Pessimistic)
+-- 1. Row-Level Exclusive Lock (Pessimistic)
 SELECT * INTO v_complaint
 FROM complaints
 WHERE id = p_complaint_id
 FOR UPDATE;
 
--- 2. Version check (Optimistic)
+-- 2. Version Verification (Optimistic)
 IF v_complaint.version != p_expected_version THEN
   RAISE EXCEPTION 'Conflict: expected version %, but current version is %',
     p_expected_version, v_complaint.version
@@ -81,8 +87,14 @@ IF v_complaint.version != p_expected_version THEN
 END IF;
 ```
 
-1. **`FOR UPDATE`** locks the specific row in the database buffer, forcing concurrent transactions on that ID to queue rather than run simultaneously.
-2. The **`p_expected_version`** parameter verifies that the row hasn't changed since the client fetched it.
-3. If versions do not match, the transaction rolls back immediately with SQLSTATE `P0003`, and the API returns HTTP `409 Conflict`.
-4. If versions match, the row is updated, `version = version + 1` is applied, and `status_history` is appended atomically.
-
+### Architectural Guarantees & Flow:
+1. **Pessimistic Row-Level Lock (`FOR UPDATE`):**
+   - Serializes concurrent transactions targeting the same complaint row.
+   - Prevents race conditions during state evaluation and history appending within PostgreSQL.
+2. **Optimistic Version Check (`version = p_expected_version`):**
+   - Confirms that the record has not mutated between read and commit phases.
+   - If a conflict occurs, the database transaction aborts cleanly with SQLSTATE `P0003`, returning an HTTP `409 Conflict` error to the API client.
+3. **Atomic State Mutation:**
+   - On successful validation, `status` is updated, `version` is incremented (`version = version + 1`), and a corresponding entry is inserted into `status_history` in a single atomic transaction.
+4. **Trigger-Guarded Immutability:**
+   - The `trg_block_direct_status_update` trigger blocks standard SQL `UPDATE complaints SET status = ...` queries unless executed within the authorized transition context.

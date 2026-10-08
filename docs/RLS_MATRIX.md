@@ -1,8 +1,8 @@
 # Row Level Security (RLS) Permission Matrix
 
-In ComplaintEase, database-level **Row Level Security (RLS)** represents the non-negotiable security boundary. Even if the backend API layer suffers a bug or omission, PostgreSQL guarantees that a user cannot read, insert, update, or delete unauthorized records.
+In ComplaintEase, PostgreSQL **Row Level Security (RLS)** provides the database-level authorization boundary. Even if an application-layer check is bypassed or misconfigured, PostgreSQL enforces row access filters directly within the query execution plan.
 
-All policies utilize the `SECURITY DEFINER` helper functions `current_user_role()` and `current_user_dept()` to completely avoid infinite recursive policy evaluations.
+All policies utilize the `SECURITY DEFINER` helper functions `current_user_role()` and `current_user_dept()` to avoid recursive policy evaluations during profile lookups.
 
 ---
 
@@ -42,9 +42,9 @@ All policies utilize the `SECURITY DEFINER` helper functions `current_user_role(
 | | **INSERT** | Function Only (`transition_complaint`) | Function Only (`transition_complaint`) |
 | | **UPDATE** | **Forbidden** (Append-only) | **Forbidden** |
 | | **DELETE** | **Forbidden** | **Forbidden** |
-| **`audit_logs`** | **SELECT** | Forbidden | Allowed (Read-only forensic audit) |
-| | **INSERT** | Trigger Only (`process_audit_log`) | Trigger Only |
-| | **UPDATE** | **Forbidden** (Append-only Trigger P0006) | **Forbidden** |
+| **`audit_logs`** | **SELECT** | Forbidden | Allowed (Forensic audit viewing) |
+| | **INSERT** | Trigger Only (`audit_trigger_fn`) | Trigger Only |
+| | **UPDATE** | **Forbidden** (Trigger P0006) | **Forbidden** |
 | | **DELETE** | **Forbidden** | **Forbidden** |
 | **`notifications`** | **SELECT** | Own notifications (`user_id = auth.uid()`) | Own notifications (`user_id = auth.uid()`) |
 | | **INSERT** | Function / Trigger Only | Function / Trigger Only |
@@ -57,5 +57,4 @@ All policies utilize the `SECURITY DEFINER` helper functions `current_user_role(
 
 1. **Deny by Default:** Every table executes `ALTER TABLE <name> ENABLE ROW LEVEL SECURITY;`. If no policy matches an operation, PostgreSQL rejects the query immediately.
 2. **Security Definer Function Bypass:** In policies where subqueries check `profiles`, calling `current_user_role()` prevents recursive policy execution loops.
-3. **Immutability Protection:** The `audit_logs` and `status_history` tables have no UPDATE or DELETE policies for application users; trigger `trg_protect_audit_logs` raises an explicit exception `55000` even if someone attempts a direct SQL mutation.
-
+3. **Tamper-Resistant Audit Logging:** The `audit_logs` and `status_history` tables have no application UPDATE or DELETE policies. Furthermore, trigger `trg_protect_audit_logs` executes `prevent_audit_tampering()` to raise error `P0006` on any attempted UPDATE or DELETE, providing tamper resistance against application-layer modifications.

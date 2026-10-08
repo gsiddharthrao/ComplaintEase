@@ -31,7 +31,7 @@ flowchart TD
         RLSEngine["Postgres RLS Engine (Per-User Token Boundary)"]
         PostgresTables["Core 3NF Relational Tables"]
         StoredProcs["transition_complaint() (FOR UPDATE Lock)"]
-        AuditTriggers["Tamper-Proof Audit Triggers"]
+        AuditTriggers["Tamper-Resistant Audit Triggers"]
         RealtimeEngine["Supabase Realtime (Postgres CDC Publication)"]
         StorageEngine["Supabase Storage (Signed Upload/Download URLs)"]
     end
@@ -77,7 +77,7 @@ sequenceDiagram
     Note over API: Sets Authorization: Bearer JWT header on Supabase client
 
     API->>DB: SELECT * FROM complaints WHERE ...
-    Note over DB: Postgres inspects auth.uid() and current_role()
+    Note over DB: Postgres inspects auth.uid() and current_user_role()
     Note over DB: Evaluates RLS policies per row
     DB-->>API: Returns only rows permitted for user's role
     API-->>User: 200 OK with sanitized complaint data
@@ -100,7 +100,7 @@ ComplaintEase implements a multi-layer security perimeter:
 
 3. **Database Kernel Defense (RLS & Triggers):**
    - **Row Level Security:** Even if an API developer writes `SELECT * FROM complaints` with no WHERE clause, PostgreSQL evaluates RLS policies and hides rows outside the employee's ownership (admins see all complaints).
-   - **Tamper-Proof Triggers:** Direct SQL `UPDATE complaints SET status = ...` is trapped and aborted by a BEFORE UPDATE trigger. All transitions must invoke `transition_complaint()`.
+   - **Tamper-Resistant Triggers:** Direct SQL `UPDATE complaints SET status = ...` is trapped and rejected by a `BEFORE UPDATE` trigger (`trg_block_direct_status_update`). All status transitions must invoke `transition_complaint()`.
 
 ---
 
@@ -111,4 +111,3 @@ When a complaint status changes or an assignment is created:
 2. The trigger `trg_notify_status_change` automatically inserts an in-app notification for the author.
 3. PostgreSQL Logical Replication streams the CDC (Change Data Capture) event through the `supabase_realtime` publication.
 4. The client's active WebSocket connection receives the broadcast and calls `queryClient.invalidateQueries()`, triggering immediate optimistic cache updates without full page refreshes.
-
