@@ -33,10 +33,10 @@ authRouter.post(
 
       const normEmail = email.toLowerCase().trim();
       if (normEmail === 'sidd@gmail.com') {
-        res.status(403).json({
+        res.status(409).json({
           error: {
-            code: 'FORBIDDEN',
-            message: 'This is the reserved administrative account. Please sign in instead.',
+            code: 'ACCOUNT_EXISTS',
+            message: 'An account with this email address already exists. Please sign in.',
             requestId: req.id,
           },
         });

@@ -44,6 +44,11 @@ export function errorHandler(
     res.status(statusCode);
   }
 
+  // Prevent leaking raw internal database / driver errors in production
+  if (res.statusCode >= 500 && process.env.NODE_ENV === 'production') {
+    message = 'An unexpected internal error occurred';
+  }
+
   logger.error(
     {
       err,

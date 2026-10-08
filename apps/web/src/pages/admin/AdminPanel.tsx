@@ -702,7 +702,7 @@ export const AdminPanel: React.FC = () => {
                         <h4 className="text-sm font-bold text-slate-900">{u.full_name}</h4>
                         {(u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' || u.role === 'admin') && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                            Primary Superadmin (sidd@gmail.com)
+                            Administrator
                           </span>
                         )}
                       </div>

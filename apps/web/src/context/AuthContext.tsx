@@ -103,16 +103,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(authResult.user as any);
       setProfile(authResult.profile);
       return;
-    } catch (mockErr: any) {
-      if (mockErr.message?.includes('Incorrect password')) {
-        throw mockErr;
-      }
-      // If user not in local store, try Supabase auth
+    } catch {
+      // If user authentication in local store fails, try Supabase auth fallback
     }
 
     // 2. Real Supabase Auth login fallback
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    if (error) throw new Error('Invalid email or password. Please try again.');
     localStorage.removeItem('complaintease_demo_user');
     await fetchProfile();
   };

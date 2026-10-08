@@ -17,7 +17,6 @@ import {
   X,
   ExternalLink,
   CheckCircle2,
-  Sparkles,
   RefreshCw,
 } from 'lucide-react';
 import { LocationMap } from '../../components/common/LocationMap.js';
@@ -89,7 +88,7 @@ export const NewComplaint: React.FC = () => {
       (error) => {
         let msg = 'Failed to acquire device location.';
         if (error.code === error.PERMISSION_DENIED) {
-          msg = 'Location permission denied by browser. Click "Use Campus Demo Coordinates" or enable location permission.';
+          msg = 'Location permission denied by browser. Please enable location permissions or enter physical machinery bay below.';
         } else if (error.code === error.POSITION_UNAVAILABLE) {
           msg = 'Location information is currently unavailable.';
         } else if (error.code === error.TIMEOUT) {
@@ -100,12 +99,6 @@ export const NewComplaint: React.FC = () => {
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
-  };
-
-  const handleUseDemoLocation = () => {
-    setCoords({ lat: 28.535516, lng: 77.391026, accuracy: 5 });
-    setLocationAddress('Plant Sector B - Heavy Machinery Bay 4 (Press Station #4)');
-    setGeoError(null);
   };
 
   const handleClearLocation = () => {
@@ -155,15 +148,6 @@ export const NewComplaint: React.FC = () => {
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) handleFileProcess(file);
-  };
-
-  const handleUseDemoImage = () => {
-    setImagePreview(
-      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
-    );
-    setImageFileName('hydraulic_manifold_pressure_leak.jpg');
-    setImageFileSize('684 KB');
-    setImageError(null);
   };
 
   const handleClearImage = () => {
@@ -357,15 +341,6 @@ export const NewComplaint: React.FC = () => {
                         </>
                       )}
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleUseDemoLocation}
-                      className="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium rounded-lg transition-colors"
-                      title="Quick fill sample plant floor coordinates"
-                    >
-                      <Sparkles className="w-3 h-3 text-amber-500" />
-                      <span>Plant Floor Demo Pin</span>
-                    </button>
                   </>
                 ) : (
                   <button
@@ -475,17 +450,6 @@ export const NewComplaint: React.FC = () => {
                 </div>
               </div>
 
-              {!imagePreview && (
-                <button
-                  type="button"
-                  onClick={handleUseDemoImage}
-                  className="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium rounded-lg transition-colors"
-                  title="Quick fill sample machinery incident photo"
-                >
-                  <Sparkles className="w-3 h-3 text-amber-500" />
-                  <span>Plant Incident Photo</span>
-                </button>
-              )}
             </div>
 
             {imageError && (

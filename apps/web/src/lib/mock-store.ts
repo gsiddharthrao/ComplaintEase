@@ -91,7 +91,7 @@ class MockStore {
   private cleanLegacyDummyData() {
     if (typeof window === 'undefined') return;
     try {
-      const CLEAN_FLAG = 'complaintease_clean_slate_v5';
+      const CLEAN_FLAG = 'complaintease_clean_slate_v6';
       if (localStorage.getItem(CLEAN_FLAG) !== 'true') {
         localStorage.removeItem('complaintease_complaints');
         localStorage.removeItem('complaintease_comments');
@@ -202,12 +202,8 @@ class MockStore {
   }): { id: string; email: string; message: string } {
     const normEmail = data.email.toLowerCase().trim();
 
-    // Prevent anyone from registering or overtaking the single administrator account
-    if (normEmail === 'sidd@gmail.com') {
-      throw new Error('This is the reserved administrative account. Please sign in directly using admin credentials.');
-    }
-
-    if (this.users[normEmail]) {
+    // Prevent account collision or taking over existing accounts
+    if (normEmail === 'sidd@gmail.com' || this.users[normEmail]) {
       throw new Error(`An account with email "${data.email}" already exists. Please sign in.`);
     }
 
@@ -254,12 +250,8 @@ class MockStore {
     const normEmail = email.toLowerCase().trim();
     const stored = this.users[normEmail];
 
-    if (!stored) {
-      throw new Error(`No account found for "${email}". Please register or check your email.`);
-    }
-
-    if (stored.password !== password) {
-      throw new Error('Incorrect password. Please try again.');
+    if (!stored || stored.password !== password) {
+      throw new Error('Invalid email or password. Please try again.');
     }
 
     if (typeof window !== 'undefined') {
