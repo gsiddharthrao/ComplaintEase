@@ -21,16 +21,15 @@ export type ComplaintStatus =
 /** Priority tiers — maps to complaint_priority Postgres enum */
 export type ComplaintPriority = 'low' | 'medium' | 'high' | 'critical';
 
-/** Allowed status transitions — enforced in DB function AND API */
 export const ALLOWED_TRANSITIONS: Record<ComplaintStatus, ComplaintStatus[]> = {
-  submitted: ['under_review', 'rejected'],
-  under_review: ['assigned', 'rejected'],
-  assigned: ['in_progress', 'rejected'],
-  in_progress: ['resolved', 'rejected'],
-  resolved: ['closed', 'reopened'],
+  submitted: ['under_review', 'assigned', 'in_progress', 'rejected'],
+  under_review: ['assigned', 'in_progress', 'resolved', 'rejected'],
+  assigned: ['in_progress', 'resolved', 'closed', 'rejected'],
+  in_progress: ['resolved', 'assigned', 'closed', 'rejected'],
+  resolved: ['closed', 'reopened', 'in_progress'],
   closed: [],           // terminal state
   rejected: [],         // terminal state
-  reopened: ['in_progress'],
+  reopened: ['in_progress', 'assigned', 'resolved', 'rejected'],
 };
 
 /** Which roles may trigger each transition */

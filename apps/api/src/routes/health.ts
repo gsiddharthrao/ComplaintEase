@@ -11,7 +11,7 @@ healthRouter.get('/health', async (_req: Request, res: Response) => {
     const supabase = getAdminClient();
     const dbPromise = supabase.from('departments').select('count', { count: 'exact', head: true });
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('DB health timeout')), 600),
+      setTimeout(() => reject(new Error('DB health timeout')), 3000),
     );
 
     const { error } = (await Promise.race([dbPromise, timeoutPromise])) as any;

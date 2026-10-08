@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api-client.js';
 import { StatusBadge } from '../../components/complaints/StatusBadge.js';
@@ -15,29 +15,51 @@ import {
   ShieldAlert,
   MapPin,
   Camera,
-  ExternalLink,
   Maximize2,
   X,
   Search,
   Filter,
   ArrowUpRight,
   Clock,
-  FileText,
   Wrench,
   Zap,
-  RotateCcw,
+  Lock,
 } from 'lucide-react';
 import { LocationMap } from '../../components/common/LocationMap.js';
-import { mockStore } from '../../lib/mock-store.js';
-import type { UserRole, ComplaintStatus } from '@complaintease/shared';
+import { useAuth } from '../../context/AuthContext.js';
+import type { UserRole, ComplaintStatus, ComplaintWithRelations } from '@complaintease/shared';
 
 export const AdminPanel: React.FC = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'complaints' | 'departments' | 'categories' | 'users' | 'audit'>('complaints');
 
+  // URL Search Params integration for 1-click navigation to closed tickets and status filters
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStatus = searchParams.get('status') || '';
+  const [complaintStatusFilter, setComplaintStatusFilter] = useState(urlStatus);
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam !== null) {
+      setComplaintStatusFilter(statusParam);
+      setActiveTab('complaints');
+    }
+  }, [searchParams]);
+
+  const handleStatusFilterChange = (newStatus: string) => {
+    setComplaintStatusFilter(newStatus);
+    const newParams = new URLSearchParams(searchParams);
+    if (newStatus) {
+      newParams.set('status', newStatus);
+    } else {
+      newParams.delete('status');
+    }
+    setSearchParams(newParams);
+  };
+
   // Complaints feed state
   const [complaintSearch, setComplaintSearch] = useState('');
-  const [complaintStatusFilter, setComplaintStatusFilter] = useState('');
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
 
   // Form states
@@ -52,9 +74,16 @@ export const AdminPanel: React.FC = () => {
   const { data: complaintsData, isLoading: complaintsLoading } = useQuery({
     queryKey: ['admin-complaints-feed'],
     queryFn: () => api.complaints.list({ limit: 100 }),
+    staleTime: 0,
+    refetchOnMount: 'always',
     refetchInterval: 3000,
   });
-  const allComplaints = complaintsData?.data || [];
+
+  const allComplaints: ComplaintWithRelations[] = Array.isArray(complaintsData)
+    ? (complaintsData as ComplaintWithRelations[])
+    : (complaintsData && Array.isArray((complaintsData as any).data))
+      ? ((complaintsData as any).data as ComplaintWithRelations[])
+      : [];
 
   const filteredComplaints = allComplaints.filter((c) => {
     if (complaintStatusFilter && c.status !== complaintStatusFilter) return false;
@@ -68,6 +97,16 @@ export const AdminPanel: React.FC = () => {
     }
     return true;
   });
+
+  const statusCounts = useMemo(() => {
+    return {
+      all: allComplaints.length,
+      in_progress: allComplaints.filter((c) => c.status === 'in_progress').length,
+      assigned: allComplaints.filter((c) => c.status === 'assigned').length,
+      resolved: allComplaints.filter((c) => c.status === 'resolved').length,
+      closed: allComplaints.filter((c) => c.status === 'closed').length,
+    };
+  }, [allComplaints]);
 
   // 1. Departments query & mutations
   const { data: departments = [] } = useQuery({
@@ -141,9 +180,12 @@ export const AdminPanel: React.FC = () => {
         note: `Status updated to ${newStatus} by administrator`,
         expected_version: version,
       }),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-complaints-feed'] });
       queryClient.invalidateQueries({ queryKey: ['complaints'] });
+      if (variables.newStatus === 'closed') {
+        handleStatusFilterChange('closed');
+      }
     },
   });
 
@@ -167,29 +209,14 @@ export const AdminPanel: React.FC = () => {
             Real-time plant incident oversight, GPS geotag feeds, rapid specialist assignment, and audit logs.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (window.confirm('Reset local incident database to clean state (0 incidents)?')) {
-              mockStore.resetStore();
-              queryClient.invalidateQueries();
-            }
-          }}
-          className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 dark:text-slate-300 hover:text-rose-700 dark:hover:text-rose-300 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 transition-colors shrink-0"
-          title="Clear all recorded incidents back to zero clean slate"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset Local Database</span>
-        </button>
       </div>
 
       {/* Tabs */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
-        <div className="border-b border-slate-200 dark:border-slate-800 flex flex-wrap">
+        <div className="border-b border-slate-200 dark:border-slate-800 flex overflow-x-auto no-scrollbar scroll-smooth">
           <button
             onClick={() => setActiveTab('complaints')}
-            className={`flex items-center space-x-2 py-3 px-6 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
+            className={`flex items-center space-x-2 py-3 px-4 sm:px-6 text-xs sm:text-sm font-semibold border-b-2 whitespace-nowrap shrink-0 transition-colors ${
               activeTab === 'complaints'
                 ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
@@ -201,7 +228,7 @@ export const AdminPanel: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('departments')}
-            className={`flex items-center space-x-2 py-3 px-6 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
+            className={`flex items-center space-x-2 py-3 px-4 sm:px-6 text-xs sm:text-sm font-semibold border-b-2 whitespace-nowrap shrink-0 transition-colors ${
               activeTab === 'departments'
                 ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
@@ -213,7 +240,7 @@ export const AdminPanel: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('categories')}
-            className={`flex items-center space-x-2 py-3 px-6 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
+            className={`flex items-center space-x-2 py-3 px-4 sm:px-6 text-xs sm:text-sm font-semibold border-b-2 whitespace-nowrap shrink-0 transition-colors ${
               activeTab === 'categories'
                 ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
@@ -225,7 +252,7 @@ export const AdminPanel: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('users')}
-            className={`flex items-center space-x-2 py-3 px-6 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
+            className={`flex items-center space-x-2 py-3 px-4 sm:px-6 text-xs sm:text-sm font-semibold border-b-2 whitespace-nowrap shrink-0 transition-colors ${
               activeTab === 'users'
                 ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
@@ -237,7 +264,7 @@ export const AdminPanel: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('audit')}
-            className={`flex items-center space-x-2 py-3 px-6 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
+            className={`flex items-center space-x-2 py-3 px-4 sm:px-6 text-xs sm:text-sm font-semibold border-b-2 whitespace-nowrap shrink-0 transition-colors ${
               activeTab === 'audit'
                 ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
@@ -248,10 +275,126 @@ export const AdminPanel: React.FC = () => {
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* 0. LIVE COMPLAINTS & GEOTAG FEED */}
           {activeTab === 'complaints' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
+              {/* Quick Status Filter Navigation Pills */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleStatusFilterChange('')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                    complaintStatusFilter === ''
+                      ? 'bg-brand-600 text-white shadow-brand-600/20 ring-2 ring-brand-500/30'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <span>All Tickets</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    complaintStatusFilter === '' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                  }`}>
+                    {statusCounts.all}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleStatusFilterChange('in_progress')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                    complaintStatusFilter === 'in_progress'
+                      ? 'bg-blue-600 text-white shadow-blue-600/20 ring-2 ring-blue-500/30'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Under Progress</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    complaintStatusFilter === 'in_progress' ? 'bg-white/20 text-white' : 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {statusCounts.in_progress}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleStatusFilterChange('assigned')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                    complaintStatusFilter === 'assigned'
+                      ? 'bg-indigo-600 text-white shadow-indigo-600/20 ring-2 ring-indigo-500/30'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Wrench className="w-3.5 h-3.5" />
+                  <span>Assigned Worker</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    complaintStatusFilter === 'assigned' ? 'bg-white/20 text-white' : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                  }`}>
+                    {statusCounts.assigned}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleStatusFilterChange('resolved')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                    complaintStatusFilter === 'resolved'
+                      ? 'bg-emerald-600 text-white shadow-emerald-600/20 ring-2 ring-emerald-500/30'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Resolved</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    complaintStatusFilter === 'resolved' ? 'bg-white/20 text-white' : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                  }`}>
+                    {statusCounts.resolved}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleStatusFilterChange('closed')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                    complaintStatusFilter === 'closed'
+                      ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-slate-900/20 ring-2 ring-slate-700/30'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Closed Tickets</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    complaintStatusFilter === 'closed' ? 'bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {statusCounts.closed}
+                  </span>
+                </button>
+              </div>
+
+              {/* Closed Tickets Section Banner */}
+              {complaintStatusFilter === 'closed' && (
+                <div className="bg-slate-900 text-white dark:bg-slate-800 p-4 rounded-2xl flex items-center justify-between gap-3 shadow-md border border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-slate-800 dark:bg-slate-700 flex items-center justify-center shrink-0">
+                      <Lock className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold">Closed Tickets Section</h4>
+                      <p className="text-[11px] sm:text-xs text-slate-400">
+                        Viewing finalized plant incident tickets that have been inspected, resolved, and closed.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleStatusFilterChange('')}
+                    className="text-xs text-slate-300 hover:text-white underline font-semibold shrink-0"
+                  >
+                    View All Tickets
+                  </button>
+                </div>
+              )}
+
               {/* Filter / Search Bar */}
               <div className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row gap-3 items-center justify-between transition-colors">
                 <div className="relative flex-1 w-full">
@@ -270,7 +413,7 @@ export const AdminPanel: React.FC = () => {
                     <Filter className="w-4 h-4 text-slate-400 shrink-0" />
                     <select
                       value={complaintStatusFilter}
-                      onChange={(e) => setComplaintStatusFilter(e.target.value)}
+                      onChange={(e) => handleStatusFilterChange(e.target.value)}
                       className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-brand-500"
                     >
                       <option value="">All Statuses ({allComplaints.length})</option>
@@ -308,7 +451,6 @@ export const AdminPanel: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-1 gap-4">
                   {filteredComplaints.map((c) => {
-                    const hasLocation = c.location_lat != null || !!c.location_address;
                     const hasImage = !!c.image_url;
 
                     return (
@@ -514,7 +656,7 @@ export const AdminPanel: React.FC = () => {
                               </button>
                             )}
 
-                            {c.status === 'resolved' && (
+                            {c.status !== 'closed' && (
                               <button
                                 type="button"
                                 onClick={() =>
@@ -525,9 +667,33 @@ export const AdminPanel: React.FC = () => {
                                   })
                                 }
                                 disabled={quickTransitionMutation.isPending}
-                                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm transition-colors"
+                                className={`px-3 py-1.5 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1 ${
+                                  c.status === 'resolved'
+                                    ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20 ring-1 ring-purple-400'
+                                    : 'bg-slate-800 hover:bg-slate-900'
+                                }`}
+                                title="Close and archive ticket to Closed Tickets section"
                               >
-                                <span>Close 🔒</span>
+                                <Lock className="w-3 h-3" />
+                                <span>Close</span>
+                              </button>
+                            )}
+
+                            {c.status === 'closed' && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  quickTransitionMutation.mutate({
+                                    complaintId: c.id,
+                                    newStatus: 'reopened',
+                                    version: c.version,
+                                  })
+                                }
+                                disabled={quickTransitionMutation.isPending}
+                                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1"
+                                title="Reopen ticket"
+                              >
+                                <span>Reopen ↺</span>
                               </button>
                             )}
 
@@ -700,9 +866,14 @@ export const AdminPanel: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h4 className="text-sm font-bold text-slate-900 dark:text-white">{u.full_name}</h4>
-                        {(u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' || u.role === 'admin') && (
+                        {u.role === 'admin' && (
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                             Administrator
+                          </span>
+                        )}
+                        {user?.id === u.id && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            You
                           </span>
                         )}
                       </div>
@@ -712,7 +883,8 @@ export const AdminPanel: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       <select
                         value={u.role}
-                        disabled={u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' || u.role === 'admin'}
+                        disabled={user?.id === u.id}
+                        title={user?.id === u.id ? 'Cannot change your own role' : undefined}
                         onChange={(e) =>
                           updateUserRoleMutation.mutate({
                             id: u.id,
@@ -721,7 +893,7 @@ export const AdminPanel: React.FC = () => {
                           })
                         }
                         className={`px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none ${
-                          u.id === 'cccccccc-cccc-cccc-cccc-cccccccccccc' || u.role === 'admin' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50' : ''
+                          user?.id === u.id ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50' : ''
                         }`}
                       >
                         <option value="employee">Employee</option>

@@ -3,16 +3,15 @@ import { User, Session } from '@supabase/supabase-js';
 import type { Profile } from '@complaintease/shared';
 import { supabase } from '../lib/supabase.js';
 import { api } from '../lib/api-client.js';
-import { mockStore } from '../lib/mock-store.js';
 
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<Profile | null>;
   logout: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<Profile | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,38 +22,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (): Promise<Profile | null> => {
     try {
       const data = await api.auth.me();
       setProfile(data.profile);
+      return data.profile;
     } catch (err) {
-      // If server unreachable but local user in storage
-      const stored = localStorage.getItem('complaintease_demo_user');
-      if (stored) {
-        const u = mockStore.getUserByEmail(stored);
-        if (u) {
-          setProfile(u.profile);
-          setUser(u.user as any);
-        }
-      } else {
-        console.warn('Could not fetch user profile:', err);
-      }
+      console.warn('Could not fetch user profile:', err);
+      setProfile(null);
+      return null;
     }
   };
 
   useEffect(() => {
-    // Check local storage for active user session first
-    const storedDemo = localStorage.getItem('complaintease_demo_user');
-    if (storedDemo) {
-      const u = mockStore.getUserByEmail(storedDemo);
-      if (u) {
-        setUser(u.user as any);
-        setProfile(u.profile);
-        setLoading(false);
-        return;
-      }
-    }
-
     // Try live Supabase session
     supabase.auth
       .getSession()
@@ -80,10 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         await fetchProfile();
       } else {
-        const stored = localStorage.getItem('complaintease_demo_user');
-        if (!stored) {
-          setProfile(null);
-        }
+        setProfile(null);
       }
       setLoading(false);
     });
@@ -93,29 +70,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const normEmail = email.toLowerCase().trim();
-
-    // 1. Check local persistent store (supports baseline accounts + all dynamically registered users)
-    try {
-      const authResult = mockStore.authenticate(normEmail, password);
-      localStorage.setItem('complaintease_demo_user', normEmail);
-      setUser(authResult.user as any);
-      setProfile(authResult.profile);
-      return;
-    } catch {
-      // If user authentication in local store fails, try Supabase auth fallback
+  const login = async (email: string, password: string): Promise<Profile | null> => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    if (error) {
+      throw new Error(error.message || 'Invalid email or password. Please try again.');
     }
-
-    // 2. Real Supabase Auth login fallback
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error('Invalid email or password. Please try again.');
-    localStorage.removeItem('complaintease_demo_user');
-    await fetchProfile();
+    return await fetchProfile();
   };
 
   const logout = async () => {
-    localStorage.removeItem('complaintease_demo_user');
     try {
       await supabase.auth.signOut();
     } catch {

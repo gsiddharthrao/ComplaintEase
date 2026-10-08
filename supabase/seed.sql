@@ -8,7 +8,8 @@ INSERT INTO departments (id, name, description) VALUES
   ('22222222-2222-2222-2222-222222222222', 'Electrical & Power Distribution', '415V/11kV MCC switchgear, transformers, motor drives, and backup gensets'),
   ('33333333-3333-3333-3333-333333333333', 'Industrial Safety & EHS', 'Environmental health, hazmat containment, machine guards, and OSHA protocols'),
   ('44444444-4444-4444-4444-444444444444', 'Utilities, Steam & HVAC', 'Boiler house, 12-bar steam headers, chillers, cooling towers, and air compressors'),
-  ('55555555-5555-5555-5555-555555555555', 'Automation, SCADA & Plant IT', 'PLCs, fieldbus telemetry, control room SCADA, sensors, and plant networking')
+  ('55555555-5555-5555-5555-555555555555', 'Automation, SCADA & Plant IT', 'PLCs, fieldbus telemetry, control room SCADA, sensors, and plant networking'),
+  ('66666666-6666-6666-6666-666666666666', 'General / Miscellaneous Operations', 'General plant facilities, unclassified operations, or issues not covered by specific technical departments')
 ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description;
 
 -- 2. Categories
@@ -22,7 +23,8 @@ INSERT INTO categories (id, name, description, department_id) VALUES
   ('d1111111-1111-1111-1111-111111111111', 'High-Pressure Steam Flange Leak', '12-bar boiler header leak, valve gland blowout, live steam hazard', '44444444-4444-4444-4444-444444444444'),
   ('d2222222-2222-2222-2222-222222222222', 'Chiller Plant & Cooling Tower Loop', 'Condenser water temperature spike, cooling water flow drop', '44444444-4444-4444-4444-444444444444'),
   ('e1111111-1111-1111-1111-111111111111', 'PLC Bus Timeout & Sensor Fault', 'Profibus/Modbus drops, 4-20mA pressure/temp transmitter drift', '55555555-5555-5555-5555-555555555555'),
-  ('f1111111-1111-1111-1111-111111111111', 'General Plant Hazard / Near Miss', 'Loose catwalk guardrail, tripping hazard, overhead crane cable wear', NULL)
+  ('f1111111-1111-1111-1111-111111111111', 'General Plant Hazard / Near Miss', 'Loose catwalk guardrail, tripping hazard, overhead crane cable wear', NULL),
+  ('f2222222-2222-2222-2222-222222222222', 'Miscellaneous / Other Incident', 'General or unclassified incident not covered by standard equipment categories', NULL)
 ON CONFLICT (name, department_id) DO NOTHING;
 
 -- 3. Procedure to generate N realistic complaints for performance testing

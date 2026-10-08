@@ -1,11 +1,24 @@
 import { getAdminClient } from '../utils/supabase.js';
 import { logger } from '../utils/logger.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const DEMO_USERS = [
+const adminEmail = process.env.ADMIN_EMAIL || process.argv[2];
+const adminPassword = process.env.ADMIN_PASSWORD || process.argv[3];
+const adminName = process.env.ADMIN_NAME || process.argv[4] || 'Plant System Administrator';
+
+if (!adminEmail || !adminPassword) {
+  logger.error(
+    'Missing ADMIN_EMAIL or ADMIN_PASSWORD. Provide them in .env or pass as arguments: pnpm seed <email> <password> [name]',
+  );
+  process.exit(1);
+}
+
+const PROVISION_USERS = [
   {
-    email: 'sidd@gmail.com',
-    password: 'Sidd1234',
-    full_name: 'Siddharth (Plant Operations Director)',
+    email: adminEmail,
+    password: adminPassword,
+    full_name: adminName,
     role: 'admin' as const,
     department_id: null,
   },
@@ -15,7 +28,7 @@ async function seed() {
   logger.info('🌱 Starting user seeding...');
   const supabase = getAdminClient();
 
-  for (const user of DEMO_USERS) {
+  for (const user of PROVISION_USERS) {
     try {
       logger.info(`Creating or updating user ${user.email}...`);
       // Check if user already exists

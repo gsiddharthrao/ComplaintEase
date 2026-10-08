@@ -144,6 +144,16 @@ describe('Validator Unit Tests', () => {
       });
       expect(result.success).toBe(true);
     });
+
+    it('accepts search strings with special characters', () => {
+      const result = listComplaintsSchema.safeParse({
+        search: 'machinery, motor (pump)',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.search).toBe('machinery, motor (pump)');
+      }
+    });
   });
 });
 

@@ -11,16 +11,14 @@ import {
   User,
   ShieldCheck,
   UserCheck,
-  Building,
   KeyRound,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, profile, login } = useAuth();
+  const { user, profile, login, logout } = useAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -76,7 +74,11 @@ export const Login: React.FC = () => {
     try {
       if (activePortal === 'admin') {
         // Admin sign in
-        await login(email.trim(), password);
+        const prof = await login(email.trim(), password);
+        if (prof?.role !== 'admin') {
+          await logout();
+          throw new Error('Access denied. This account does not possess administrator credentials.');
+        }
         navigate('/admin', { replace: true });
       } else if (staffMode === 'signin') {
         // Existing staff sign in
@@ -86,6 +88,15 @@ export const Login: React.FC = () => {
         // New staff registration
         if (!fullName.trim() || fullName.trim().length < 2) {
           throw new Error('Please enter your full name (minimum 2 characters).');
+        }
+        if (password.length < 8) {
+          throw new Error('Password must be at least 8 characters long.');
+        }
+        if (!/[A-Z]/.test(password)) {
+          throw new Error('Password must contain at least one uppercase letter (A-Z).');
+        }
+        if (!/[0-9]/.test(password)) {
+          throw new Error('Password must contain at least one number (0-9).');
         }
         await api.auth.register({
           email: email.trim(),
@@ -262,7 +273,7 @@ export const Login: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={activePortal === 'admin' ? 'sidd@gmail.com' : 'employee@company.com'}
+                  placeholder={activePortal === 'admin' ? 'admin@company.com' : 'employee@company.com'}
                   className="w-full px-3.5 py-2.5 pl-10 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all placeholder:text-slate-400"
                 />
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -285,6 +296,11 @@ export const Login: React.FC = () => {
                 />
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               </div>
+              {activePortal === 'staff' && staffMode === 'register' && (
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  Must be at least 8 characters with 1 uppercase letter and 1 number.
+                </p>
+              )}
             </div>
 
             {/* Submit Button */}

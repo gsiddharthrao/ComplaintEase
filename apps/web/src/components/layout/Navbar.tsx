@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.js';
 import { api } from '../../lib/api-client.js';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCheck, LogOut, ShieldAlert, User as UserIcon } from 'lucide-react';
+import { Bell, CheckCheck, LogOut, ShieldAlert, User as UserIcon, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ThemeToggle } from '../common/ThemeToggle.js';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  onToggleMobileMenu?: () => void;
+  isMobileMenuOpen?: boolean;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu, isMobileMenuOpen }) => {
   const { profile, logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const queryClient = useQueryClient();
@@ -40,10 +45,21 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <div className="flex items-center space-x-3">
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-200 shrink-0">
+      <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        {/* Logo & Mobile Menu Button */}
+        <div className="flex items-center space-x-2.5 sm:space-x-3">
+          {profile && (
+            <button
+              type="button"
+              onClick={onToggleMobileMenu}
+              className="md:hidden p-2 -ml-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0"
+              aria-label="Toggle mobile navigation menu"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          )}
+
           <Link to="/" className="flex items-center space-x-2 group">
             <div className="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-lg shadow-sm group-hover:scale-105 transition-transform">
               <ShieldAlert className="w-5 h-5" />
@@ -55,7 +71,7 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Right side actions */}
-        <div className="flex items-center space-x-3 sm:space-x-4">
+        <div className="flex items-center space-x-2.5 sm:space-x-4">
           {/* Dark Mode Toggle */}
           <ThemeToggle />
 
@@ -75,7 +91,7 @@ export const Navbar: React.FC = () => {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
                 <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-100">Notifications</h3>

@@ -10,7 +10,7 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, 'Must contain a number'),
   full_name: z.string().min(2, 'At least 2 characters').max(100),
   role: z.enum(['employee', 'admin']).default('employee'),
-  department_id: z.string().uuid().nullable().optional(),
+  department_id: z.union([z.string().uuid(), z.literal(''), z.null()]).optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

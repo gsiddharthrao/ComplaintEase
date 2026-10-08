@@ -24,6 +24,7 @@ export function useRealtime() {
         (payload) => {
           console.log('⚡ Realtime Complaint Change:', payload);
           queryClient.invalidateQueries({ queryKey: ['complaints'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-complaints-feed'] });
           if ((payload.new as any)?.id) {
             queryClient.invalidateQueries({ queryKey: ['complaint', (payload.new as any).id] });
           }

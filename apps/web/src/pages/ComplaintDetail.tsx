@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api-client.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -9,8 +9,6 @@ import { Timeline } from '../components/complaints/Timeline.js';
 import { CommentsThread } from '../components/complaints/CommentsThread.js';
 import { AttachmentsList } from '../components/complaints/AttachmentsList.js';
 import {
-  ALLOWED_TRANSITIONS,
-  TRANSITION_PERMISSIONS,
   ComplaintStatus,
 } from '@complaintease/shared';
 import {
@@ -24,23 +22,23 @@ import {
   RotateCcw,
   UserPlus,
   MapPin,
-  ExternalLink,
   Image as ImageIcon,
   Maximize2,
   X,
   Wrench,
   Zap,
+  Lock,
 } from 'lucide-react';
 import { LocationMap } from '../components/common/LocationMap.js';
 
 export const ComplaintDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<'timeline' | 'comments' | 'attachments'>('timeline');
   const [transitionNote, setTransitionNote] = useState('');
-  const [selectedNextStatus, setSelectedNextStatus] = useState<ComplaintStatus | null>(null);
   const [transitionError, setTransitionError] = useState<string | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
 
@@ -64,12 +62,15 @@ export const ComplaintDetail: React.FC = () => {
   const transitionMutation = useMutation({
     mutationFn: (data: { new_status: ComplaintStatus; note: string; expected_version: number }) =>
       api.complaints.transition(id!, data),
-    onSuccess: () => {
-      setSelectedNextStatus(null);
+    onSuccess: (_data, variables) => {
       setTransitionNote('');
       setTransitionError(null);
       queryClient.invalidateQueries({ queryKey: ['complaint', id] });
       queryClient.invalidateQueries({ queryKey: ['complaints'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-complaints-feed'] });
+      if (variables.new_status === 'closed') {
+        navigate(profile?.role === 'admin' ? '/admin?status=closed' : '/employee?status=closed');
+      }
     },
     onError: (err: any) => {
       setTransitionError(err.message || 'Status transition failed.');
@@ -83,6 +84,7 @@ export const ComplaintDetail: React.FC = () => {
       setAssigneeId('');
       queryClient.invalidateQueries({ queryKey: ['complaint', id] });
       queryClient.invalidateQueries({ queryKey: ['complaints'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-complaints-feed'] });
     },
     onError: (err: any) => {
       setTransitionError(err.message || 'Assignment failed.');
@@ -136,25 +138,14 @@ export const ComplaintDetail: React.FC = () => {
     );
   }
 
-  // Calculate allowed transitions
+  // Calculate status and user role
   const currentStatus = complaint.status as ComplaintStatus;
-  const rawAllowed = ALLOWED_TRANSITIONS[currentStatus] || [];
   const userRole = profile?.role || 'employee';
-
-  // Filter transitions permitted for user role
-  const allowedForRole = rawAllowed.filter((targetStatus) => {
-    if (userRole === 'admin') return true;
-    if (userRole === 'employee') {
-      // Employees can only reopen their own resolved complaints
-      return targetStatus === 'reopened' && currentStatus === 'resolved' && complaint.created_by === profile?.id;
-    }
-    return false;
-  });
 
   const handleExecuteTransition = (newStatus: ComplaintStatus) => {
     transitionMutation.mutate({
       new_status: newStatus,
-      note: transitionNote,
+      note: transitionNote || (newStatus === 'closed' ? 'Closed by administrator and archived' : `Status updated to ${newStatus}`),
       expected_version: complaint.version,
     });
   };
@@ -364,40 +355,67 @@ export const ComplaintDetail: React.FC = () => {
             </div>
 
             {/* Quick Resolution Buttons */}
-            <div className="flex items-center gap-2">
-              {currentStatus !== 'in_progress' && currentStatus !== 'resolved' && currentStatus !== 'closed' && (
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Start Work / Under Progress button */}
+              {currentStatus !== 'in_progress' && currentStatus !== 'closed' && (
                 <button
                   type="button"
                   onClick={handleQuickInProgress}
                   disabled={transitionMutation.isPending}
-                  className="flex-1 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5"
+                  className="flex-1 min-w-[130px] py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   <Zap className="w-3.5 h-3.5" />
-                  <span>Start Work</span>
+                  <span>{currentStatus === 'resolved' ? 'Resume Work' : '⚡ Under Progress'}</span>
                 </button>
               )}
 
+              {/* Mark Resolved button */}
               {currentStatus !== 'resolved' && currentStatus !== 'closed' && (
                 <button
                   type="button"
                   onClick={handleQuickResolve}
                   disabled={transitionMutation.isPending}
-                  className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5"
+                  className="flex-1 min-w-[130px] py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Mark Resolved ✓</span>
                 </button>
               )}
 
-              {currentStatus === 'resolved' && (
+              {/* Close Ticket button */}
+              {currentStatus !== 'closed' && (
                 <button
                   type="button"
                   onClick={() => handleExecuteTransition('closed')}
                   disabled={transitionMutation.isPending}
-                  className="flex-1 py-2.5 px-3 bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
+                  className={`flex-1 min-w-[130px] py-2.5 px-3 text-white text-xs font-bold rounded-xl shadow-md transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                    currentStatus === 'resolved'
+                      ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/25 ring-2 ring-purple-400/50'
+                      : 'bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600'
+                  }`}
                 >
+                  <Lock className="w-3.5 h-3.5" />
                   <span>Close Ticket 🔒</span>
                 </button>
+              )}
+
+              {/* If ticket is already closed */}
+              {currentStatus === 'closed' && (
+                <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-100 dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>This ticket is closed and archived in the Closed Tickets section.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleExecuteTransition('reopened')}
+                    disabled={transitionMutation.isPending}
+                    className="py-1.5 px-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reopen Ticket</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -437,10 +455,10 @@ export const ComplaintDetail: React.FC = () => {
 
       {/* Tabs: Timeline vs Discussion vs Attachments */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
-        <div className="border-b border-slate-200 dark:border-slate-800 flex">
+        <div className="border-b border-slate-200 dark:border-slate-800 flex overflow-x-auto no-scrollbar scroll-smooth">
           <button
             onClick={() => setActiveTab('timeline')}
-            className={`flex-1 py-3 text-xs sm:text-sm font-semibold border-b-2 text-center transition-colors ${
+            className={`flex-1 min-w-[130px] py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold border-b-2 text-center whitespace-nowrap transition-colors ${
               activeTab === 'timeline'
                 ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
@@ -450,7 +468,7 @@ export const ComplaintDetail: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('comments')}
-            className={`flex-1 py-3 text-xs sm:text-sm font-semibold border-b-2 text-center transition-colors ${
+            className={`flex-1 min-w-[130px] py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold border-b-2 text-center whitespace-nowrap transition-colors ${
               activeTab === 'comments'
                 ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
@@ -460,7 +478,7 @@ export const ComplaintDetail: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('attachments')}
-            className={`flex-1 py-3 text-xs sm:text-sm font-semibold border-b-2 text-center transition-colors ${
+            className={`flex-1 min-w-[130px] py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold border-b-2 text-center whitespace-nowrap transition-colors ${
               activeTab === 'attachments'
                 ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
@@ -470,7 +488,7 @@ export const ComplaintDetail: React.FC = () => {
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {activeTab === 'timeline' && <Timeline history={complaint.status_history || []} />}
           {activeTab === 'comments' && <CommentsThread complaintId={complaint.id} />}
           {activeTab === 'attachments' && <AttachmentsList complaintId={complaint.id} />}

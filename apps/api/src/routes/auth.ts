@@ -31,18 +31,6 @@ authRouter.post(
     try {
       const { email, password, full_name, department_id } = req.body;
 
-      const normEmail = email.toLowerCase().trim();
-      if (normEmail === 'sidd@gmail.com') {
-        res.status(409).json({
-          error: {
-            code: 'ACCOUNT_EXISTS',
-            message: 'An account with this email address already exists. Please sign in.',
-            requestId: req.id,
-          },
-        });
-        return;
-      }
-
       const adminSupabase = getAdminClient();
 
       const { data, error } = await adminSupabase.auth.admin.createUser({
@@ -57,10 +45,16 @@ authRouter.post(
       });
 
       if (error) {
-        res.status(400).json({
+        const isConflict =
+          error.message.toLowerCase().includes('already registered') ||
+          error.message.toLowerCase().includes('already exists') ||
+          (error as any).status === 422;
+        res.status(isConflict ? 409 : 400).json({
           error: {
-            code: 'REGISTRATION_FAILED',
-            message: error.message,
+            code: isConflict ? 'ACCOUNT_EXISTS' : 'REGISTRATION_FAILED',
+            message: isConflict
+              ? 'An account with this email address already exists. Please sign in.'
+              : error.message,
             requestId: req.id,
           },
         });

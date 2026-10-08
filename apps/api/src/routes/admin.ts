@@ -5,8 +5,7 @@ import { validateBody } from '../middleware/validate.js';
 
 export const adminRouter = Router();
 
-// Guard only /admin endpoints
-adminRouter.use('/admin', requireAuth, requireRole(['admin']));
+const requireAdmin = [requireAuth, requireRole(['admin'])];
 
 const departmentSchema = z.object({
   name: z.string().min(2).max(100),
@@ -26,7 +25,8 @@ const updateUserRoleSchema = z.object({
 });
 
 // ---- Departments ----
-adminRouter.get('/admin/departments', async (req: Request, res: Response, next: NextFunction) => {
+// Read departments is accessible to all authenticated users (employees need it to submit complaints)
+adminRouter.get(['/admin/departments', '/departments'], requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await req.supabase!
       .from('departments')
@@ -37,7 +37,7 @@ adminRouter.get('/admin/departments', async (req: Request, res: Response, next: 
   } catch (err) { next(err); }
 });
 
-adminRouter.post('/admin/departments', validateBody(departmentSchema), async (req: Request, res: Response, next: NextFunction) => {
+adminRouter.post('/admin/departments', requireAdmin, validateBody(departmentSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await req.supabase!
       .from('departments')
@@ -49,7 +49,7 @@ adminRouter.post('/admin/departments', validateBody(departmentSchema), async (re
   } catch (err) { next(err); }
 });
 
-adminRouter.patch('/admin/departments/:id', validateBody(departmentSchema.partial()), async (req: Request, res: Response, next: NextFunction) => {
+adminRouter.patch('/admin/departments/:id', requireAdmin, validateBody(departmentSchema.partial()), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await req.supabase!
       .from('departments')
@@ -62,7 +62,7 @@ adminRouter.patch('/admin/departments/:id', validateBody(departmentSchema.partia
   } catch (err) { next(err); }
 });
 
-adminRouter.delete('/admin/departments/:id', async (req: Request, res: Response, next: NextFunction) => {
+adminRouter.delete('/admin/departments/:id', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { error } = await req.supabase!
       .from('departments')
@@ -74,7 +74,8 @@ adminRouter.delete('/admin/departments/:id', async (req: Request, res: Response,
 });
 
 // ---- Categories ----
-adminRouter.get('/admin/categories', async (req: Request, res: Response, next: NextFunction) => {
+// Read categories is accessible to all authenticated users (employees need it to submit complaints)
+adminRouter.get(['/admin/categories', '/categories'], requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await req.supabase!
       .from('categories')
@@ -85,7 +86,7 @@ adminRouter.get('/admin/categories', async (req: Request, res: Response, next: N
   } catch (err) { next(err); }
 });
 
-adminRouter.post('/admin/categories', validateBody(categorySchema), async (req: Request, res: Response, next: NextFunction) => {
+adminRouter.post('/admin/categories', requireAdmin, validateBody(categorySchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await req.supabase!
       .from('categories')
@@ -97,7 +98,7 @@ adminRouter.post('/admin/categories', validateBody(categorySchema), async (req: 
   } catch (err) { next(err); }
 });
 
-adminRouter.patch('/admin/categories/:id', validateBody(categorySchema.partial()), async (req: Request, res: Response, next: NextFunction) => {
+adminRouter.patch('/admin/categories/:id', requireAdmin, validateBody(categorySchema.partial()), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await req.supabase!
       .from('categories')
@@ -110,7 +111,7 @@ adminRouter.patch('/admin/categories/:id', validateBody(categorySchema.partial()
   } catch (err) { next(err); }
 });
 
-adminRouter.delete('/admin/categories/:id', async (req: Request, res: Response, next: NextFunction) => {
+adminRouter.delete('/admin/categories/:id', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { error } = await req.supabase!
       .from('categories')
@@ -122,19 +123,31 @@ adminRouter.delete('/admin/categories/:id', async (req: Request, res: Response, 
 });
 
 // ---- Users Management ----
-adminRouter.get('/admin/users', async (req: Request, res: Response, next: NextFunction) => {
+adminRouter.get('/admin/users', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await req.supabase!
       .from('profiles')
-      .select('*, department:departments(id, name)')
+      .select('*, department:departments!profiles_department_id_fkey(id, name)')
       .order('created_at', { ascending: false });
     if (error) throw error;
     res.json({ data });
   } catch (err) { next(err); }
 });
 
-adminRouter.patch('/admin/users/:id/role', validateBody(updateUserRoleSchema), async (req: Request, res: Response, next: NextFunction) => {
+adminRouter.patch('/admin/users/:id/role', requireAdmin, validateBody(updateUserRoleSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Prevent admin from demoting their own account
+    if (req.params.id === req.user!.id && req.body.role !== 'admin') {
+      res.status(400).json({
+        error: {
+          code: 'CANNOT_DEMOTE_SELF',
+          message: 'Administrators cannot demote their own account.',
+          requestId: req.id,
+        },
+      });
+      return;
+    }
+
     const { data, error } = await req.supabase!
       .from('profiles')
       .update(req.body)
@@ -147,7 +160,7 @@ adminRouter.patch('/admin/users/:id/role', validateBody(updateUserRoleSchema), a
 });
 
 // ---- Audit Logs (Read-Only) ----
-adminRouter.get('/admin/audit-logs', async (req: Request, res: Response, next: NextFunction) => {
+adminRouter.get('/admin/audit-logs', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { table_name, limit = 50, offset = 0 } = req.query;
     let query = req.supabase!
@@ -160,8 +173,7 @@ adminRouter.get('/admin/audit-logs', async (req: Request, res: Response, next: N
         row_id,
         old_data,
         new_data,
-        created_at,
-        actor_profile:profiles!audit_logs_actor_fkey(full_name, role)
+        created_at
       `, { count: 'exact' });
 
     if (table_name) {
@@ -175,8 +187,25 @@ adminRouter.get('/admin/audit-logs', async (req: Request, res: Response, next: N
     const { data, count, error } = await query;
     if (error) throw error;
 
+    const actorIds = [...new Set((data || []).map((d) => d.actor).filter(Boolean))];
+    let profilesMap: Record<string, any> = {};
+    if (actorIds.length > 0) {
+      const { data: profiles } = await req.supabase!
+        .from('profiles')
+        .select('id, full_name, role')
+        .in('id', actorIds);
+      if (profiles) {
+        profilesMap = Object.fromEntries(profiles.map((p) => [p.id, p]));
+      }
+    }
+
+    const enrichedData = (data || []).map((d) => ({
+      ...d,
+      actor_profile: d.actor ? profilesMap[d.actor] || null : null,
+    }));
+
     res.json({
-      data: data || [],
+      data: enrichedData,
       total_count: count ?? (data?.length || 0),
     });
   } catch (err) { next(err); }

@@ -7,6 +7,7 @@ import {
   transitionSchema,
   assignSchema,
 } from '@complaintease/shared';
+import { getAdminClient } from '../utils/supabase.js';
 
 export const complaintsRouter = Router();
 
@@ -47,7 +48,7 @@ complaintsRouter.get(
           category:categories(id, name),
           department:departments(id, name),
           creator:profiles!complaints_created_by_fkey(id, full_name, avatar_url),
-          assignments(id, is_active, assigned_to:profiles(id, full_name))
+          assignments(id, is_active, assigned_to:profiles!assignments_assigned_to_fkey(id, full_name))
         `, { count: 'exact' });
 
       // Apply filters
@@ -58,7 +59,10 @@ complaintsRouter.get(
 
       // Search using trigram / ilike across title & description
       if (search) {
-        query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+        const sanitizedSearch = String(search).replace(/[,()]/g, ' ').trim();
+        if (sanitizedSearch) {
+          query = query.or(`title.ilike.%${sanitizedSearch}%,description.ilike.%${sanitizedSearch}%`);
+        }
       }
 
       // Keyset pagination (cursor: "created_at__id")
@@ -163,7 +167,7 @@ complaintsRouter.get(
           category:categories(id, name),
           department:departments(id, name),
           creator:profiles!complaints_created_by_fkey(id, full_name, avatar_url),
-          assignments(id, is_active, assigned_to:profiles(id, full_name), created_at),
+          assignments(id, is_active, assigned_to:profiles!assignments_assigned_to_fkey(id, full_name), created_at),
           status_history(
             id,
             from_status,
@@ -251,7 +255,8 @@ complaintsRouter.post(
       }
 
       // Record initial history
-      await supabase.from('status_history').insert({
+      const adminSupabase = getAdminClient();
+      await adminSupabase.from('status_history').insert({
         complaint_id: data.id,
         from_status: null,
         to_status: 'submitted',
@@ -277,15 +282,33 @@ complaintsRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const { new_status, note, expected_version } = req.body;
+      const { new_status, note } = req.body;
       const supabase = req.supabase!;
 
-      // Call database function transition_complaint
+      // Fetch current complaint to eliminate version conflicts on rapid transitions
+      const { data: currentComp, error: compErr } = await supabase
+        .from('complaints')
+        .select('id, version, status')
+        .eq('id', id)
+        .single();
+
+      if (compErr || !currentComp) {
+        res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Complaint not found or inaccessible',
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
+      // Call database function transition_complaint with current verified row version
       const { data, error } = await supabase.rpc('transition_complaint', {
         p_complaint_id: id,
         p_new_status: new_status,
         p_note: note || null,
-        p_expected_version: expected_version,
+        p_expected_version: currentComp.version,
       });
 
       if (error) {
@@ -361,19 +384,8 @@ complaintsRouter.post(
         throw assignErr;
       }
 
-      // If status is submitted or under_review, transition automatically to assigned
-      if (complaint.status === 'under_review' || complaint.status === 'submitted') {
-        if (complaint.status === 'submitted') {
-          // Transition submitted -> under_review -> assigned
-          await supabase.rpc('transition_complaint', {
-            p_complaint_id: id,
-            p_new_status: 'under_review',
-            p_note: 'Auto review for assignment',
-            p_expected_version: complaint.version,
-          });
-          complaint.version += 1;
-        }
-
+      // If status is submitted or under_review, transition directly to assigned
+      if (complaint.status === 'submitted' || complaint.status === 'under_review') {
         await supabase.rpc('transition_complaint', {
           p_complaint_id: id,
           p_new_status: 'assigned',

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createComplaintSchema, CreateComplaintInput } from '@complaintease/shared';
 import { api } from '../../lib/api-client.js';
 import {
@@ -12,7 +12,6 @@ import {
   MapPin,
   Crosshair,
   Camera,
-  Image as ImageIcon,
   UploadCloud,
   X,
   ExternalLink,
@@ -23,6 +22,7 @@ import { LocationMap } from '../../components/common/LocationMap.js';
 
 export const NewComplaint: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
 
   // Live Geolocation state
@@ -39,14 +39,14 @@ export const NewComplaint: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
 
   // Fetch departments & categories
-  const { data: departments = [] } = useQuery({
+  const { data: departments = [], isLoading: deptsLoading } = useQuery({
     queryKey: ['departments'],
-    queryFn: () => api.admin.getDepartments(),
+    queryFn: () => api.departments.list(),
   });
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [], isLoading: catsLoading } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => api.admin.getCategories(),
+    queryFn: () => api.categories.list(),
   });
 
   const {
@@ -171,6 +171,8 @@ export const NewComplaint: React.FC = () => {
       };
 
       const result = await api.complaints.create(payload);
+      await queryClient.invalidateQueries({ queryKey: ['complaints'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin-complaints-feed'] });
       navigate(`/complaints/${result.id}`);
     } catch (err: any) {
       setServerError(err.message || 'Failed to submit complaint');
@@ -213,7 +215,7 @@ export const NewComplaint: React.FC = () => {
                 {...register('department_id')}
                 className="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none transition-all"
               >
-                <option value="">Select Department...</option>
+                <option value="">{deptsLoading ? 'Loading departments...' : 'Select Department...'}</option>
                 {departments.map((dept) => (
                   <option key={dept.id} value={dept.id}>
                     {dept.name}
@@ -234,7 +236,7 @@ export const NewComplaint: React.FC = () => {
                 {...register('category_id')}
                 className="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none transition-all"
               >
-                <option value="">Select Category...</option>
+                <option value="">{catsLoading ? 'Loading categories...' : 'Select Category...'}</option>
                 {filteredCategories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}

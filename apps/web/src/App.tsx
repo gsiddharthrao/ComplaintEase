@@ -1,7 +1,8 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './context/AuthContext.js';
+import { AuthProvider, useAuth } from './context/AuthContext.js';
+import { ThemeProvider } from './context/ThemeContext.js';
 import { ProtectedRoute } from './components/auth/ProtectedRoute.js';
 import { Layout } from './components/layout/Layout.js';
 
@@ -20,8 +21,6 @@ const ComplaintDetail = lazy(() =>
 const AdminPanel = lazy(() =>
   import('./pages/admin/AdminPanel.js').then((m) => ({ default: m.AdminPanel })),
 );
-
-import { useAuth } from './context/AuthContext.js';
 
 const RoleBasedRedirect: React.FC = () => {
   const { profile } = useAuth();
@@ -61,8 +60,6 @@ const PageLoader = () => (
     <div className="w-8 h-8 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
   </div>
 );
-
-import { ThemeProvider } from './context/ThemeContext.js';
 
 export function App() {
   return (

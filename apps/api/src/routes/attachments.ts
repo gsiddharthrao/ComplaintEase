@@ -89,6 +89,50 @@ attachmentsRouter.post(
       const { file_name, file_size, mime_type, storage_path } = req.body;
       const supabase = req.supabase!;
 
+      // 1. Verify caller has access to the complaint
+      const { data: complaint, error: compErr } = await supabase
+        .from('complaints')
+        .select('id')
+        .eq('id', id)
+        .single();
+
+      if (compErr || !complaint) {
+        res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Complaint not found or inaccessible',
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
+      // 2. Validate storage_path ownership and format
+      const expectedPrefix = `${req.user!.id}/${id}/`;
+      if (!storage_path.startsWith(expectedPrefix)) {
+        res.status(403).json({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Storage path does not belong to the authenticated user or complaint',
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
+      const filenamePart = storage_path.slice(expectedPrefix.length);
+      const safeFilenameRegex = /^[a-zA-Z0-9_\-\.]+\.[a-zA-Z0-9]+$/;
+      if (!filenamePart || filenamePart.includes('/') || filenamePart.includes('\\') || !safeFilenameRegex.test(filenamePart)) {
+        res.status(400).json({
+          error: {
+            code: 'INVALID_STORAGE_PATH',
+            message: 'Storage path format is invalid',
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('attachments')
         .insert({
