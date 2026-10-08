@@ -126,10 +126,10 @@ export const ComplaintDetail: React.FC = () => {
 
   if (error || !complaint) {
     return (
-      <div className="bg-rose-50 border border-rose-200 rounded-xl p-6 text-center text-rose-700">
-        <h3 className="font-semibold text-base mb-1">Error Loading Complaint</h3>
-        <p className="text-xs">{(error as any)?.message || 'Complaint not found or access denied.'}</p>
-        <Link to="/employee" className="mt-4 inline-block text-xs font-semibold text-brand-600 underline">
+      <div className="bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 rounded-2xl p-6 text-center text-rose-700 dark:text-rose-300">
+        <h3 className="font-semibold text-base mb-1 text-rose-900 dark:text-rose-200">Error Loading Complaint</h3>
+        <p className="text-xs text-rose-600 dark:text-rose-400">{(error as any)?.message || 'Complaint not found or access denied.'}</p>
+        <Link to="/employee" className="mt-4 inline-block text-xs font-semibold text-brand-600 dark:text-brand-400 underline">
           Return to dashboard
         </Link>
       </div>
@@ -224,7 +224,7 @@ export const ComplaintDetail: React.FC = () => {
                     title={`Location for ${complaint.title}`}
                   />
                 ) : (
-                  <div className="p-3 bg-white rounded-lg border border-emerald-100 text-xs text-emerald-800">
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-emerald-100 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300">
                     <strong>Physical Landmark:</strong> {complaint.location_address}
                   </div>
                 )}
@@ -462,8 +462,8 @@ export const ComplaintDetail: React.FC = () => {
             onClick={() => setActiveTab('attachments')}
             className={`flex-1 py-3 text-xs sm:text-sm font-semibold border-b-2 text-center transition-colors ${
               activeTab === 'attachments'
-                ? 'border-brand-600 text-brand-600 bg-brand-50/20'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/20 dark:bg-brand-950/20'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             Evidence & Attachments
@@ -481,19 +481,19 @@ export const ComplaintDetail: React.FC = () => {
       {showImageModal && complaint.image_url && (
         <div
           onClick={() => setShowImageModal(false)}
-          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col"
+            className="relative max-w-4xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col"
           >
-            <div className="flex items-center justify-between p-3 border-b border-slate-100 bg-slate-50">
-              <span className="text-xs font-bold text-slate-800 truncate">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80">
+              <span className="text-xs font-bold text-slate-800 dark:text-white truncate">
                 Incident Photo Evidence: {complaint.title}
               </span>
               <button
                 onClick={() => setShowImageModal(false)}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg transition-colors"
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>

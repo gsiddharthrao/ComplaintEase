@@ -78,12 +78,12 @@ export const AttachmentsList: React.FC<AttachmentsListProps> = ({ complaintId })
     <div className="space-y-4">
       {/* Upload button */}
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+        <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
           <Paperclip className="w-3.5 h-3.5" />
           Attached Evidence ({attachments.length})
         </h4>
 
-        <label className="cursor-pointer inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors">
+        <label className="cursor-pointer inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg transition-colors">
           <Upload className="w-3.5 h-3.5" />
           <span>{isUploading ? 'Uploading...' : 'Upload File'}</span>
           <input
@@ -97,32 +97,32 @@ export const AttachmentsList: React.FC<AttachmentsListProps> = ({ complaintId })
       </div>
 
       {uploadError && (
-        <div className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-2.5 rounded-lg">
+        <div className="text-xs text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 p-2.5 rounded-lg">
           {uploadError}
         </div>
       )}
 
       {/* Files List */}
       {isLoading ? (
-        <p className="text-xs text-slate-400">Loading attachments...</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">Loading attachments...</p>
       ) : attachments.length === 0 ? (
-        <p className="text-xs text-slate-400">No attachments uploaded yet.</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">No attachments uploaded yet.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {attachments.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white hover:border-brand-300 transition-colors"
+              className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-brand-300 dark:hover:border-brand-700 transition-colors shadow-xs"
             >
               <div className="flex items-center space-x-2.5 min-w-0 pr-2">
-                <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 shrink-0">
                   <File className="w-4 h-4" />
                 </div>
                 <div className="truncate">
-                  <p className="text-xs font-semibold text-slate-800 truncate" title={item.file_name}>
+                  <p className="text-xs font-semibold text-slate-800 dark:text-white truncate" title={item.file_name}>
                     {item.file_name}
                   </p>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500">
                     {formatFileSize(item.file_size)} • {item.uploader?.full_name || 'Staff'}
                   </p>
                 </div>
@@ -133,7 +133,7 @@ export const AttachmentsList: React.FC<AttachmentsListProps> = ({ complaintId })
                   href={item.download_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors shrink-0"
+                  className="p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/50 rounded-lg transition-colors shrink-0"
                   title="Download attachment"
                 >
                   <Download className="w-4 h-4" />

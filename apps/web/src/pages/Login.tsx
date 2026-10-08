@@ -20,7 +20,18 @@ import {
 export const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { user, profile, login } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user && profile) {
+      if (profile.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/employee', { replace: true });
+      }
+    }
+  }, [user, profile, navigate]);
 
   const queryParams = new URLSearchParams(location.search);
   const defaultPortal = queryParams.get('portal') === 'admin' ? 'admin' : 'staff';
@@ -94,24 +105,24 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-100 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-200">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-200 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 text-slate-900 dark:text-slate-100 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-300">
       {/* Ambient background glow effects */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-brand-500/10 blur-[130px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-80 h-80 bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-brand-500/10 dark:bg-brand-500/15 blur-[130px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-80 h-80 bg-emerald-500/10 dark:bg-emerald-500/15 blur-[120px] rounded-full pointer-events-none" />
 
       {/* Top navbar controls (Theme toggle) */}
       <div className="absolute top-5 right-5 sm:top-6 sm:right-8 z-20 flex items-center gap-3">
-        <ThemeToggle showLabel={false} className="border-slate-800 bg-slate-900/80 backdrop-blur-md shadow-md text-amber-300" />
+        <ThemeToggle showLabel={true} className="backdrop-blur-md shadow-md" />
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-lg text-center relative z-10 mb-6">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-500 text-white shadow-xl shadow-brand-500/25 mb-3.5 transform hover:scale-105 transition-transform duration-300">
           <ShieldAlert className="w-8 h-8" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-          Complaint<span className="text-brand-400">Ease</span>
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white transition-colors">
+          Complaint<span className="text-brand-600 dark:text-brand-400">Ease</span>
         </h1>
-        <p className="mt-1.5 text-xs sm:text-sm text-slate-400 max-w-sm mx-auto">
+        <p className="mt-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-sm mx-auto transition-colors">
           Enterprise Plant Operations & Incident Resolution Portal
         </p>
       </div>
@@ -345,7 +356,7 @@ export const Login: React.FC = () => {
         </div>
 
         {/* Security badge footer */}
-        <div className="mt-6 text-center text-[11px] text-slate-500 dark:text-slate-500 flex items-center justify-center gap-2">
+        <div className="mt-6 text-center text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
           <span>Enterprise Row-Level Security • End-to-End TLS Encrypted</span>
         </div>

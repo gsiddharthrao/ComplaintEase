@@ -298,10 +298,10 @@ export const AdminPanel: React.FC = () => {
                   <p className="text-sm text-slate-500">Loading live incident feed...</p>
                 </div>
               ) : filteredComplaints.length === 0 ? (
-                <div className="p-12 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  <MapPin className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                  <h3 className="text-sm font-semibold text-slate-700">No plant incidents reported yet</h3>
-                  <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                <div className="p-12 text-center bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                  <MapPin className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">No plant incidents reported yet</h3>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm mx-auto">
                     When plant operators report equipment breakdowns or safety hazards, they will appear live here in real-time.
                   </p>
                 </div>
@@ -533,7 +533,7 @@ export const AdminPanel: React.FC = () => {
 
                             <Link
                               to={`/complaints/${c.id}`}
-                              className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-1"
+                              className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-1"
                             >
                               <span>Full View</span>
                               <ArrowUpRight className="w-3.5 h-3.5" />

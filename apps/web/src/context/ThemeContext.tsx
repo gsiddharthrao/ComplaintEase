@@ -14,24 +14,36 @@ const THEME_STORAGE_KEY = 'complaintease_theme_mode';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
-    // 1. Check local storage
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved === 'dark' || saved === 'light') {
-      return saved;
+    let initial: Theme = 'light';
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      if (saved === 'dark' || saved === 'light') {
+        initial = saved;
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        initial = 'dark';
+      }
     }
-    // 2. Check system preference (fallback to dark for industrial enterprise aesthetic)
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
+    if (typeof document !== 'undefined') {
+      if (initial === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.body?.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body?.classList.remove('dark');
+      }
     }
-    return 'light';
+    return initial;
   });
 
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     if (theme === 'dark') {
       root.classList.add('dark');
+      body?.classList.add('dark');
     } else {
       root.classList.remove('dark');
+      body?.classList.remove('dark');
     }
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
@@ -69,3 +81,4 @@ export const useTheme = (): ThemeContextType => {
   }
   return context;
 };
+
