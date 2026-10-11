@@ -78,6 +78,18 @@ flowchart LR
 ### `009_complaint_location_image.sql`
 - **Purpose:** Adds geolocation coordinates (`location_lat`, `location_lng`), physical address (`location_address`), photographic evidence URL (`image_url`), and the composite spatial index `idx_complaints_location`.
 
+### `010_security_workflow_hardening.sql`
+- **Purpose:** Comprehensive enterprise security boundary, state machine, OCC, and storage hardening migration.
+- **Key Concepts:**
+  - **Sensitive Profile Column Protection:** Drops legacy trigger and creates `protect_profile_sensitive_columns()` with `trg_protect_profile_sensitive_columns` on `profiles`. Non-admin users attempting to mutate sensitive fields (`role`, `department_id`, `id`, `created_at`) are rejected with SQLSTATE `42501`.
+  - **Scoped Supabase Storage Policies:** Replaces overly broad bucket-wide policies with complaint-scoped policies (`storage_insert_scoped`, `storage_select_scoped`, `storage_delete_scoped`) enforcing verified path ownership (`<user_id>/<complaint_id>/<file>` or `<complaint_id>/<file>`).
+  - **Realtime Attachments Publication:** Adds `attachments` table to `supabase_realtime` logical replication publication alongside `complaints`, `comments`, and `notifications`.
+  - **Autonomous Initial History Creation:** Installs `trg_complaint_initial_history` (`AFTER INSERT ON complaints`) invoking `record_initial_complaint_status_history()` to atomically insert the initial `submitted` status entry without requiring service-role client bypasses.
+  - **Canonical State Machine Synchronization:** Empties and repopulates `allowed_transitions` with strictly the 23 canonical transitions defined in `@complaintease/shared`, ensuring terminal states `closed` and `rejected` have 0 outgoing transitions.
+  - **Atomic Specialist Assignment RPC (`assign_specialist`):** Implements exclusive row locking (`FOR UPDATE`), admin verification, terminal-state rejection (`closed`/`rejected` raising `P0001`), optimistic version validation (`expected_version` mismatch raising `P0003`), active assignment deactivation, new assignment insertion, and conditional advancement to `assigned`.
+  - **Audit Log Tamper-Proofing Error Alignment:** Aligns `block_audit_log_modification` trigger to raise SQLSTATE `P0006`.
+  - **SECURITY DEFINER Privilege Lockdown:** Revokes `EXECUTE` on all stored functions from `PUBLIC` and `anon`. Grants `EXECUTE` strictly to `authenticated` for public RPCs (`current_user_role`, `current_user_dept`, `transition_complaint`, `assign_specialist`), and completely revokes direct invocation permissions on trigger functions (`handle_new_user`, `protect_profile_sensitive_columns`, etc.).
+
 ---
 
 ## 2. Shared Types & Schemas (`/packages/shared`)
@@ -130,7 +142,7 @@ flowchart LR
 - Manages user session state, handles login/logout, and listens to Supabase auth events via `onAuthStateChange`.
 
 ### `src/hooks/useRealtime.ts`
-- Sets up Supabase Realtime WebSocket subscriptions on `complaints`, `comments`, and `notifications`, automatically invalidating TanStack Query caches on changes.
+- Sets up Supabase Realtime WebSocket subscriptions on `complaints`, `comments`, `notifications`, and `attachments`, automatically invalidating TanStack Query caches across employee and administrator dashboards on changes.
 
 ### `src/components/auth/ProtectedRoute.tsx`
 - Route wrapper that verifies authentication and role permissions before rendering protected pages.
@@ -145,6 +157,10 @@ flowchart LR
 
 ### `src/pages/employee/NewComplaint.tsx`
 - High-fidelity incident filing interface featuring:
+  - **Two-Stage Creation & Signed Upload Workflow:**
+    - **Stage 1 (Complaint Creation):** Atomically inserts complaint metadata via authenticated REST API (`POST /api/v1/complaints`).
+    - **Stage 2 (Signed Storage Upload):** Obtains signed upload URL (`POST /api/v1/complaints/:id/attachments/upload-url`), streams file payload directly to private Supabase Storage, and registers attachment confirmation metadata (`POST /api/v1/complaints/:id/attachments`).
+    - **Resilient Error Recovery:** If file upload encounters network or quota errors after ticket creation, provides clear user feedback with retry options and direct navigation to the complaint detail page, while maintaining legacy `image_url` backward compatibility.
   - Live GPS acquisition via HTML5 Geolocation API (`navigator.geolocation.getCurrentPosition`).
   - Fallback manual location input for room/bay descriptions.
   - Photographic evidence upload with local drag-and-drop preview and client-side validation.

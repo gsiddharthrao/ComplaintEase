@@ -16,7 +16,7 @@ All policies utilize the `SECURITY DEFINER` helper functions `current_user_role(
 | | **DELETE** | Forbidden | Allowed (RESTRICT if referenced) |
 | **`profiles`** | **SELECT** | Allowed (All, for name lookups) | Allowed (All) |
 | | **INSERT** | Trigger Only (`auth.users`) | Trigger / Admin API |
-| | **UPDATE** | Own profile only (`id = auth.uid()`, **role modification blocked via trigger 42501**) | Allowed (All profiles & roles) |
+| | **UPDATE** | Own profile only (`id = auth.uid()`, **sensitive column modification blocked via trigger `trg_protect_profile_sensitive_columns` (42501)** for `role`, `department_id`, `id`, `created_at`) | Allowed (All profiles & roles) |
 | | **DELETE** | Forbidden | Allowed (CASCADE via auth) |
 | **`categories`** | **SELECT** | Allowed (All) | Allowed (All) |
 | | **INSERT** | Forbidden | Allowed |
@@ -70,6 +70,6 @@ Supabase Storage files are isolated in private buckets (`complaint-attachments` 
 
 1. **Deny by Default:** Every table executes `ALTER TABLE <name> ENABLE ROW LEVEL SECURITY;`. If no policy matches an operation, PostgreSQL rejects the query immediately.
 2. **Security Definer Function Bypass:** In policies where subqueries check `profiles`, calling `current_user_role()` prevents recursive policy execution loops.
-3. **Role Escalation Protection (`trg_protect_profile_role`):** Even though employees possess `UPDATE` permissions on their own profile row, a `BEFORE UPDATE` trigger on `profiles` raises SQLSTATE `42501` whenever a non-admin attempts to mutate the `role` column.
+3. **Sensitive Profile Column Protection (`trg_protect_profile_sensitive_columns`):** Even though employees possess `UPDATE` permissions on their own profile row, a `BEFORE UPDATE` trigger on `profiles` (`protect_profile_sensitive_columns()`) raises SQLSTATE `42501` whenever a non-admin attempts to mutate sensitive columns (`role`, `department_id`, `id`, or `created_at`). Non-admin users are strictly restricted to updating benign self-service fields (`full_name`, `avatar_url`, `updated_at`).
 4. **Autonomous Initial History Creation (`trg_complaint_initial_history`):** Initial complaint status tracking is handled by an `AFTER INSERT` trigger on `complaints` executing `record_initial_complaint_status_history()`. This eliminates the need for Express API handlers to use `getAdminClient()` for initial history writes.
 5. **Tamper-Resistant Audit Logging:** The `audit_logs` and `status_history` tables have no application UPDATE or DELETE policies. Furthermore, trigger `trg_protect_audit_logs` executes `prevent_audit_tampering()` to raise error `P0006` on any attempted UPDATE or DELETE, providing tamper resistance against application-layer modifications.

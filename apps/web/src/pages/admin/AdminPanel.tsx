@@ -71,7 +71,6 @@ export const AdminPanel: React.FC = () => {
   const [catDesc, setCatDesc] = useState('');
   const [catDeptId, setCatDeptId] = useState('');
 
-  // 0. Live complaints query with 3s realtime polling
   const { data: complaintsData, isLoading: complaintsLoading } = useQuery({
     queryKey: ['admin-complaints-feed'],
     queryFn: () => api.complaints.list({ limit: 100 }),

@@ -117,8 +117,9 @@ SELECT assign_specialist(
 ### Guarantees:
 1. **Administrative Authorization:** Validates `current_user_role() = 'admin'`, raising `P0004` (403) for non-administrators.
 2. **Pessimistic Row Lock & Optimistic Versioning:** Acquires `SELECT ... FOR UPDATE` on the complaint and verifies `version = p_expected_version` (raising `P0003` on conflict).
-3. **Atomic State Synchronization:** If the complaint is currently in `submitted`, `under_review`, `in_progress`, or `reopened`, its status is automatically advanced to `assigned`, inserting a `status_history` record and incrementing `version`.
-4. **Single Active Specialist Constraint:** Deactivates any prior active assignments for this complaint (`UPDATE assignments SET is_active = false`) and creates the new active assignment row in a single atomic transaction.
+3. **Terminal State Guard:** Blocks assignment on terminal complaints (`closed` or `rejected`), raising SQLSTATE `P0001` (HTTP 400 `INVALID_TRANSITION`) to prevent assigning specialists to finalized tickets.
+4. **Atomic State Synchronization:** If the complaint is currently in `submitted`, `under_review`, `in_progress`, or `reopened`, its status is automatically advanced to `assigned`, inserting a `status_history` record and incrementing `version`.
+5. **Single Active Specialist Constraint:** Deactivates any prior active assignments for this complaint (`UPDATE assignments SET is_active = false`) and creates the new active assignment row in a single atomic transaction.
 
 ---
 
@@ -130,5 +131,6 @@ The states `closed` and `rejected` are strictly **terminal**:
 
 Once a complaint transitions to either state:
 - Neither employees nor administrators can transition the ticket to any other status.
+- `assign_specialist()` strictly blocks any attempt to assign specialists to `closed` or `rejected` complaints, raising SQLSTATE `P0001`.
 - User interface action buttons are hidden, and a persistent terminal badge is rendered.
 - All historical comments, assignments, attachments, and status history entries remain preserved for forensic audit compliance.

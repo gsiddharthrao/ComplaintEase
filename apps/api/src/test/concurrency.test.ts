@@ -58,6 +58,26 @@ const mockSupabase = {
     }
 
     if (fn === 'assign_specialist') {
+      if (mockComplaintData.status === 'closed' || mockComplaintData.status === 'rejected') {
+        const terminalErr = Object.assign(
+          new Error(`Cannot assign specialist to a ${mockComplaintData.status} complaint`),
+          { code: 'P0001' },
+        );
+        return { data: null, error: terminalErr };
+      }
+
+      if (
+        args.p_expected_version !== undefined &&
+        args.p_expected_version !== null &&
+        args.p_expected_version !== mockComplaintData.version
+      ) {
+        const conflictErr = Object.assign(
+          new Error(`Conflict: expected version ${args.p_expected_version}, but current version is ${mockComplaintData.version}`),
+          { code: 'P0003' },
+        );
+        return { data: null, error: conflictErr };
+      }
+
       return {
         data: {
           success: true,
@@ -65,7 +85,7 @@ const mockSupabase = {
           complaint_id: args.p_complaint_id,
           assigned_to: args.p_assigned_to,
           status: 'assigned',
-          version: 2,
+          version: (mockComplaintData.version || 1) + 1,
         },
         error: null,
       };
@@ -187,6 +207,54 @@ describe('Optimistic Concurrency & Atomic RPC Integration Tests (R4.1, R3.2, R2.
       expect(res.status).toBe(403);
       expect(res.body.error.code).toBe('FORBIDDEN');
       expect(mockRpcCalls.length).toBe(0);
+    });
+
+    it('returns HTTP 400 when assigning specialist to a terminal closed complaint (P0001)', async () => {
+      mockComplaintData = { id: 'comp-100', version: 6, status: 'closed' };
+
+      const res = await request(app)
+        .post('/api/v1/complaints/comp-100/assign')
+        .send({
+          assigned_to: '11111111-2222-3333-4444-555555555555',
+          note: 'Assigning to closed complaint',
+          expected_version: 6,
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_TRANSITION');
+      expect(res.body.error.message).toContain('Cannot assign specialist to a closed complaint');
+    });
+
+    it('returns HTTP 400 when assigning specialist to a terminal rejected complaint (P0001)', async () => {
+      mockComplaintData = { id: 'comp-100', version: 6, status: 'rejected' };
+
+      const res = await request(app)
+        .post('/api/v1/complaints/comp-100/assign')
+        .send({
+          assigned_to: '11111111-2222-3333-4444-555555555555',
+          note: 'Assigning to rejected complaint',
+          expected_version: 6,
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_TRANSITION');
+      expect(res.body.error.message).toContain('Cannot assign specialist to a rejected complaint');
+    });
+
+    it('returns HTTP 409 Conflict when assigning specialist with stale expected_version (P0003)', async () => {
+      mockComplaintData = { id: 'comp-100', version: 6, status: 'submitted' };
+
+      const res = await request(app)
+        .post('/api/v1/complaints/comp-100/assign')
+        .send({
+          assigned_to: '11111111-2222-3333-4444-555555555555',
+          note: 'Stale version assignment',
+          expected_version: 5, // Stale! DB version is 6
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('VERSION_CONFLICT');
+      expect(res.body.error.message).toContain('updated by another user');
     });
   });
 

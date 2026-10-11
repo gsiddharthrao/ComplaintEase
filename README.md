@@ -4,7 +4,7 @@
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
 [![Supabase](https://img.shields.io/badge/Database-PostgreSQL%2015%20%2B%20Supabase-emerald.svg)](https://supabase.com/)
-[![Tests](https://img.shields.io/badge/Tests-68%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-143%20Passed-brightgreen.svg)]()
 [![Status](https://img.shields.io/badge/Project%20Status-Frozen%20%26%20Release%20Ready-purple.svg)]()
 
 **ComplaintEase Enterprise** is an incident reporting, plant operations, and complaint resolution platform built as an isolated TypeScript monorepo. It couples an authenticated React 18 client with a stateless Express API and a hardened PostgreSQL 15 / Supabase database.
@@ -98,7 +98,7 @@ complaintease/
 │       │   ├── middleware/     # requireAuth, requireRole, validate, errorHandler, rateLimit
 │       │   ├── routes/         # auth, complaints, comments, attachments, notifications, admin, health
 │       │   ├── scripts/        # seed-users.ts
-│       │   ├── test/           # 68 Vitest tests across 8 test suites (concurrency, error-handler, workflow, etc.)
+│       │   ├── test/           # 143 Vitest tests across 9 test suites (adversarial, concurrency, error-handler, etc.)
 │       │   └── utils/          # supabase.ts (user RLS client & admin client), logger.ts (Pino)
 │       └── Dockerfile          # Multi-stage production container build
 ├── packages/
@@ -172,22 +172,29 @@ The codebase is strictly typed and verified:
 pnpm -r typecheck
 # Result: 0 errors, 0 warnings
 
-# Automated test execution (68 passing tests across 8 suites)
+# Automated test execution (143 passing tests across 9 suites)
 pnpm -r test
 # Result:
+# ✓ src/test/challenger-2-adversarial.test.ts (68 tests)
+# ✓ src/test/security-fixes.test.ts (17 tests)
 # ✓ src/test/validators.test.ts (15 tests)
-# ✓ src/test/security-fixes.test.ts (13 tests)
 # ✓ src/test/workflow-and-env.test.ts (11 tests)
 # ✓ src/test/error-handler.test.ts (9 tests)
+# ✓ src/test/concurrency.test.ts (8 tests)
 # ✓ src/test/state-machine.test.ts (6 tests)
-# ✓ src/test/concurrency.test.ts (5 tests)
 # ✓ src/test/role-permissions.test.ts (5 tests)
 # ✓ src/test/api-endpoints.test.ts (4 tests)
+# Test Files  9 passed (9)
+#      Tests  143 passed (143)
 
 # Production bundling
 pnpm -r build
 # Result: ESM + CJS + DTS bundle (@complaintease/shared), tsc (@complaintease/api), Vite production bundle (@complaintease/web)
 ```
+
+> **Testing Architecture Note — In-Memory Vitest vs. Live PostgreSQL SQL Integration:**
+> - **Vitest / Supertest Suites (143 Tests across 9 Suites):** Execute in-memory via mocked Supabase clients for fast deterministic verification of Express route guards, Zod validators, error handling status code mappings (`P0001`–`P0006`, `42501`), OCC conflict handling, and controller logic.
+> - **Live PostgreSQL Integration Script (`supabase/tests/rls_and_concurrency_test.sql`, 16 Tests):** Standalone transactional integration test suite executing on a live PostgreSQL/Supabase database engine (`psql -f supabase/tests/rls_and_concurrency_test.sql`). It asserts genuine database-level constraints: Row Level Security (RLS) policies, internal comment visibility filters, status locking triggers (`trg_block_direct_status_update`), sensitive profile column immutability (`trg_protect_profile_sensitive_columns`), atomic history insertion (`trg_complaint_initial_history`), optimistic concurrency conflicts, stored procedure execution (`transition_complaint()`, `assign_specialist()`), and role privilege revocation (`REVOKE ... FROM anon`).
 
 ---
 

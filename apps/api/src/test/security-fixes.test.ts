@@ -8,6 +8,7 @@ let currentMockProfile: { id: string; full_name: string; role: 'admin' | 'employ
 let mockComplaintLookup: any = { data: { id: 'complaint-abc' }, error: null };
 let mockInsertResult: any = { data: { id: 'att-1', file_name: 'test.png' }, error: null };
 let mockUpdateResult: any = { data: { id: 'target-user', role: 'employee' }, error: null };
+let mockUpdateError: any = null;
 
 const mockSupabase = {
   from: (table: string) => ({
@@ -30,7 +31,12 @@ const mockSupabase = {
     update: (_payload: any) => ({
       eq: (_field: string, _val: any) => ({
         select: () => ({
-          single: () => mockUpdateResult,
+          single: () => {
+            if (mockUpdateError) {
+              return { data: null, error: mockUpdateError };
+            }
+            return mockUpdateResult;
+          },
         }),
       }),
     }),
@@ -75,6 +81,8 @@ describe('Security Fix Regression Tests', () => {
     currentMockUser = { id: 'user-123', email: 'test@example.com' };
     currentMockProfile = { id: 'user-123', full_name: 'Test Admin', role: 'admin' };
     mockComplaintLookup = { data: { id: 'complaint-abc' }, error: null };
+    mockUpdateError = null;
+    mockUpdateResult = { data: { id: 'target-user', role: 'employee' }, error: null };
   });
 
   describe('Attachment storage_path BOLA / IDOR Protection', () => {
@@ -259,6 +267,76 @@ describe('Security Fix Regression Tests', () => {
         .send({ name: 'Unauthorized Cat' });
       expect(resCreateCat.status).toBe(403);
       expect(resCreateCat.body.error.code).toBe('FORBIDDEN');
+    });
+  });
+
+  describe('Profile Sensitive Column Protection (R2.2, 42501)', () => {
+    it('blocks non-admin users from updating profile roles or sensitive attributes via admin endpoints with HTTP 403', async () => {
+      currentMockProfile = { id: 'user-123', full_name: 'Test Employee', role: 'employee' };
+
+      const res = await request(app)
+        .patch('/api/v1/admin/users/user-123/role')
+        .send({
+          role: 'admin',
+          department_id: '11111111-1111-1111-1111-111111111111',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    });
+
+    it('rejects profile update with HTTP 403 when database trigger raises 42501 for role', async () => {
+      mockUpdateError = Object.assign(
+        new Error('Non-admin users are strictly forbidden from modifying sensitive profile columns (role, department_id, id, created_at)'),
+        { code: '42501' },
+      );
+
+      const res = await request(app)
+        .patch('/api/v1/admin/users/other-user-789/role')
+        .send({
+          role: 'employee',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+      expect(res.body.error.message).toContain('Non-admin users are strictly forbidden from modifying sensitive profile columns');
+    });
+
+    it('rejects profile update with HTTP 403 when database trigger raises 42501 for department_id', async () => {
+      mockUpdateError = Object.assign(
+        new Error('Non-admin users are strictly forbidden from modifying sensitive profile columns (role, department_id, id, created_at)'),
+        { code: '42501' },
+      );
+
+      const res = await request(app)
+        .patch('/api/v1/admin/users/other-user-789/role')
+        .send({
+          role: 'admin',
+          department_id: '22222222-2222-2222-2222-222222222222',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+      expect(res.body.error.message).toContain('Non-admin users are strictly forbidden from modifying sensitive profile columns');
+    });
+
+    it('rejects profile update with HTTP 403 when database trigger raises 42501 for id or created_at', async () => {
+      for (const field of ['id', 'created_at']) {
+        mockUpdateError = Object.assign(
+          new Error(`Non-admin users are strictly forbidden from modifying sensitive profile columns (role, department_id, id, created_at): attempted ${field}`),
+          { code: '42501' },
+        );
+
+        const res = await request(app)
+          .patch('/api/v1/admin/users/other-user-789/role')
+          .send({
+            role: 'employee',
+          });
+
+        expect(res.status).toBe(403);
+        expect(res.body.error.code).toBe('FORBIDDEN');
+        expect(res.body.error.message).toContain('Non-admin users are strictly forbidden from modifying sensitive profile columns');
+      }
     });
   });
 });

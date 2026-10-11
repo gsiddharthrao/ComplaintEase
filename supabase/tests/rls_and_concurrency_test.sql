@@ -4,6 +4,14 @@
 --   psql -f supabase/tests/rls_and_concurrency_test.sql
 -- ============================================================
 
+-- Ensure anon role exists if running on standalone postgres without Supabase roles
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    CREATE ROLE anon NOLOGIN;
+  END IF;
+END $$;
+
 BEGIN;
 
 -- Test Setup: Create mock auth users and profiles for testing
@@ -17,6 +25,8 @@ DECLARE
   v_comp1_id UUID := 'dddddddd-dddd-dddd-dddd-dddddddddddd';
   v_comp2_id UUID := 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
   v_comp3_id UUID := '11112222-3333-4444-5555-666677778888';
+  v_comp_closed UUID := '77777777-7777-7777-7777-777777777777';
+  v_comp_rejected UUID := '88888888-8888-8888-8888-888888888888';
   v_cat_id UUID := 'a1111111-1111-1111-1111-111111111111';
   v_comment_id UUID := 'ffffffff-ffff-ffff-ffff-ffffffffffff';
   v_audit_id UUID;
@@ -33,7 +43,7 @@ BEGIN
   ON CONFLICT (id) DO UPDATE SET role = EXCLUDED.role, department_id = EXCLUDED.department_id;
 
   -- 2. Clean test complaints
-  DELETE FROM complaints WHERE id IN (v_comp1_id, v_comp2_id, v_comp3_id);
+  DELETE FROM complaints WHERE id IN (v_comp1_id, v_comp2_id, v_comp3_id, v_comp_closed, v_comp_rejected);
 
   -- 3. Insert baseline complaints
   INSERT INTO complaints (id, title, description, category_id, department_id, created_by, status, priority, version)
@@ -216,6 +226,92 @@ BEGIN
     RAISE EXCEPTION 'TEST 12 FAILED: Active assignment not found for specialist!';
   END IF;
   RAISE NOTICE 'PASS: Test 12 - assign_specialist RPC executed atomically with assignment and transition';
+
+  -- -------------------------------------------------------------------------
+  -- TEST 13: Non-Admin Updating Profile department_id, id, or created_at raises SQLSTATE 42501
+  -- -------------------------------------------------------------------------
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp_id::text, 'role', 'authenticated')::text, true);
+
+  -- 13A: Attempt to update department_id
+  BEGIN
+    UPDATE profiles SET department_id = v_dept_hr WHERE id = v_emp_id;
+    RAISE EXCEPTION 'TEST 13A FAILED: Non-admin should not be able to modify department_id!';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      RAISE NOTICE 'PASS: Test 13A - Non-admin profile department_id update blocked (SQLSTATE 42501)';
+  END;
+
+  -- 13B: Attempt to update id
+  BEGIN
+    UPDATE profiles SET id = 'ffffffff-aaaa-aaaa-aaaa-aaaaaaaaaaaa' WHERE id = v_emp_id;
+    RAISE EXCEPTION 'TEST 13B FAILED: Non-admin should not be able to modify id!';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      RAISE NOTICE 'PASS: Test 13B - Non-admin profile id update blocked (SQLSTATE 42501)';
+  END;
+
+  -- 13C: Attempt to update created_at
+  BEGIN
+    UPDATE profiles SET created_at = now() - interval '1 year' WHERE id = v_emp_id;
+    RAISE EXCEPTION 'TEST 13C FAILED: Non-admin should not be able to modify created_at!';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      RAISE NOTICE 'PASS: Test 13C - Non-admin profile created_at update blocked (SQLSTATE 42501)';
+  END;
+
+  -- -------------------------------------------------------------------------
+  -- TEST 14: Non-Admin Updating Permitted Profile Fields (full_name, avatar_url) Succeeds
+  -- -------------------------------------------------------------------------
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp_id::text, 'role', 'authenticated')::text, true);
+  UPDATE profiles
+  SET full_name = 'Updated Employee Name',
+      avatar_url = 'https://example.com/avatar.png'
+  WHERE id = v_emp_id;
+
+  SELECT count(*) INTO v_count FROM profiles
+  WHERE id = v_emp_id
+    AND full_name = 'Updated Employee Name'
+    AND avatar_url = 'https://example.com/avatar.png';
+  IF v_count != 1 THEN
+    RAISE EXCEPTION 'TEST 14 FAILED: Permitted profile fields full_name and avatar_url were not updated!';
+  END IF;
+  RAISE NOTICE 'PASS: Test 14 - Non-admin updating permitted profile fields (full_name, avatar_url) succeeds';
+
+  -- -------------------------------------------------------------------------
+  -- TEST 15: Admin Assigning Specialist to Closed or Rejected Complaint Raises SQLSTATE P0001
+  -- -------------------------------------------------------------------------
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
+
+  INSERT INTO complaints (id, title, description, category_id, department_id, created_by, status, priority, version)
+  VALUES
+    (v_comp_closed, 'Closed Incident', 'Incident closed after resolution verification', v_cat_id, v_dept_it, v_emp_id, 'closed', 'low', 1),
+    (v_comp_rejected, 'Rejected Incident', 'Incident rejected as duplicate ticket', v_cat_id, v_dept_it, v_emp_id, 'rejected', 'low', 1);
+
+  -- 15A: Attempt to assign to closed complaint
+  BEGIN
+    PERFORM assign_specialist(v_comp_closed, v_emp_id, 'Assigning to closed incident', 1);
+    RAISE EXCEPTION 'TEST 15A FAILED: Admin assignment to closed complaint should raise P0001!';
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      RAISE NOTICE 'PASS: Test 15A - Admin assignment to closed complaint blocked (SQLSTATE P0001)';
+  END;
+
+  -- 15B: Attempt to assign to rejected complaint
+  BEGIN
+    PERFORM assign_specialist(v_comp_rejected, v_emp_id, 'Assigning to rejected incident', 1);
+    RAISE EXCEPTION 'TEST 15B FAILED: Admin assignment to rejected complaint should raise P0001!';
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      RAISE NOTICE 'PASS: Test 15B - Admin assignment to rejected complaint blocked (SQLSTATE P0001)';
+  END;
+
+  -- -------------------------------------------------------------------------
+  -- TEST 16: Check has_function_privilege('anon', 'assign_specialist(uuid, uuid, text, integer)', 'execute') is false
+  -- -------------------------------------------------------------------------
+  IF has_function_privilege('anon', 'assign_specialist(uuid, uuid, text, integer)', 'execute') THEN
+    RAISE EXCEPTION 'TEST 16 FAILED: Role anon should NOT have execute privilege on assign_specialist!';
+  END IF;
+  RAISE NOTICE 'PASS: Test 16 - anon role has NO execute privilege on assign_specialist';
 
   RAISE NOTICE '=== ALL RLS & INTEGRITY TESTS PASSED SUCCESSFULLY ===';
 END $$;

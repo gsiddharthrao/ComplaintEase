@@ -61,23 +61,27 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION public.handle_new_user();
 
 -- ------------------------------------------------------------
--- 2. Profile Role Authorization Trigger (R2.2)
--- Prevent non-admin users from escalating their own role in profiles
+-- 2. Profile Sensitive Column Authorization Trigger (R2.2)
+-- Prevent non-admin users from modifying sensitive profile columns
+-- (role, department_id, id, created_at)
 -- ------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.protect_profile_role()
+CREATE OR REPLACE FUNCTION public.protect_profile_sensitive_columns()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF NEW.role IS DISTINCT FROM OLD.role THEN
+  IF (NEW.role IS DISTINCT FROM OLD.role OR
+      NEW.department_id IS DISTINCT FROM OLD.department_id OR
+      NEW.id IS DISTINCT FROM OLD.id OR
+      NEW.created_at IS DISTINCT FROM OLD.created_at) THEN
     -- Check if caller is admin or service_role
     IF current_user_role() != 'admin' AND
        current_setting('role', true) != 'service_role' AND
        coalesce(current_setting('request.jwt.claims', true)::json->>'role', '') != 'service_role'
     THEN
-      RAISE EXCEPTION 'Non-admin users are strictly forbidden from modifying user roles'
+      RAISE EXCEPTION 'Non-admin users are strictly forbidden from modifying sensitive profile columns (role, department_id, id, created_at)'
         USING ERRCODE = '42501';
     END IF;
   END IF;
@@ -86,24 +90,32 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_protect_profile_role ON public.profiles;
-CREATE TRIGGER trg_protect_profile_role
+DROP TRIGGER IF EXISTS trg_protect_profile_sensitive_columns ON public.profiles;
+CREATE TRIGGER trg_protect_profile_sensitive_columns
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW
-  EXECUTE FUNCTION public.protect_profile_role();
+  EXECUTE FUNCTION public.protect_profile_sensitive_columns();
+
+DROP FUNCTION IF EXISTS public.protect_profile_role();
 
 -- ------------------------------------------------------------
--- 3. Supabase Storage Hardening (R2.3)
--- Drop overly broad bucket-wide policies and enforce scoped path ownership
+-- 3. Supabase Storage Hardening (R2.3, R2.4)
+-- Drop overly broad legacy policies and enforce scoped path ownership
 -- ------------------------------------------------------------
 DO $$ BEGIN
   DROP POLICY IF EXISTS "storage_upload_policy" ON storage.objects;
   DROP POLICY IF EXISTS "storage_read_policy" ON storage.objects;
+  DROP POLICY IF EXISTS "storage_upload_authenticated" ON storage.objects;
+  DROP POLICY IF EXISTS "storage_read_authenticated" ON storage.objects;
+  DROP POLICY IF EXISTS "storage_insert_scoped" ON storage.objects;
+  DROP POLICY IF EXISTS "storage_select_scoped" ON storage.objects;
+  DROP POLICY IF EXISTS "storage_delete_scoped" ON storage.objects;
 EXCEPTION WHEN others THEN null; END $$;
 
 -- Scoped upload policy:
 -- Path must be <user_id>/<complaint_id>/<filename> or <complaint_id>/<filename>
 -- and the caller must own the complaint or be an admin
-CREATE POLICY "storage_upload_policy"
+CREATE POLICY "storage_insert_scoped"
   ON storage.objects FOR INSERT
   TO authenticated
   WITH CHECK (
@@ -134,7 +146,7 @@ CREATE POLICY "storage_upload_policy"
 
 -- Scoped read policy:
 -- Complaint must belong to caller or caller must be admin
-CREATE POLICY "storage_read_policy"
+CREATE POLICY "storage_select_scoped"
   ON storage.objects FOR SELECT
   TO authenticated
   USING (
@@ -145,6 +157,32 @@ CREATE POLICY "storage_read_policy"
         SELECT 1 FROM public.complaints c
         WHERE c.id::text = split_part(name, '/', 2)
           AND c.created_by = auth.uid()
+      ) OR
+      -- 2-part path
+      EXISTS (
+        SELECT 1 FROM public.complaints c
+        WHERE c.id::text = split_part(name, '/', 1)
+          AND c.created_by = auth.uid()
+      )
+    )
+  );
+
+-- Scoped delete policy:
+-- Complaint must belong to caller or caller must be admin
+CREATE POLICY "storage_delete_scoped"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (
+    bucket_id = 'attachments' AND (
+      current_user_role() = 'admin' OR
+      (
+        -- 3-part path
+        split_part(name, '/', 1) = auth.uid()::text AND
+        EXISTS (
+          SELECT 1 FROM public.complaints c
+          WHERE c.id::text = split_part(name, '/', 2)
+            AND c.created_by = auth.uid()
+        )
       ) OR
       -- 2-part path
       EXISTS (
@@ -198,6 +236,8 @@ CREATE TRIGGER trg_complaint_initial_history
 -- 5. Canonical State Machine Transitions (R3.1)
 -- Synchronize the complete 23 transitions from @complaintease/shared enums.ts
 -- ------------------------------------------------------------
+DELETE FROM public.allowed_transitions;
+
 INSERT INTO public.allowed_transitions (from_status, to_status) VALUES
   ('submitted',    'under_review'),
   ('submitted',    'assigned'),
@@ -221,8 +261,7 @@ INSERT INTO public.allowed_transitions (from_status, to_status) VALUES
   ('reopened',     'in_progress'),
   ('reopened',     'assigned'),
   ('reopened',     'resolved'),
-  ('reopened',     'rejected')
-ON CONFLICT (from_status, to_status) DO NOTHING;
+  ('reopened',     'rejected');
 
 -- Enforce terminal states closed and rejected have zero outgoing transitions
 DELETE FROM public.allowed_transitions
@@ -230,7 +269,7 @@ WHERE from_status IN ('closed', 'rejected');
 
 -- ------------------------------------------------------------
 -- 6. Atomic Specialist Assignment Stored Function (R3.2)
--- Executes row locking, admin check, assignee verification,
+-- Executes row locking, admin check, terminal check, assignee verification,
 -- previous assignment deactivation, new assignment insertion,
 -- and conditional status transition to 'assigned' atomically.
 -- ------------------------------------------------------------
@@ -270,6 +309,12 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Complaint % not found', p_complaint_id
       USING ERRCODE = 'P0002';
+  END IF;
+
+  -- 2b. Reject assignment on terminal complaints (closed, rejected)
+  IF v_complaint.status IN ('closed', 'rejected') THEN
+    RAISE EXCEPTION 'Cannot assign specialist to a % complaint', v_complaint.status
+      USING ERRCODE = 'P0001';
   END IF;
 
   -- 3. Optimistic version check if client specified expected_version
@@ -356,8 +401,6 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.assign_specialist(UUID, UUID, TEXT, INTEGER) TO authenticated;
-
 -- ------------------------------------------------------------
 -- 7. Audit Log Tamper-Proofing Error Code Alignment (R4.2)
 -- Ensure block_audit_log_modification raises ERRCODE = 'P0006'
@@ -373,3 +416,43 @@ BEGIN
     USING ERRCODE = 'P0006';
 END;
 $$;
+
+-- ------------------------------------------------------------
+-- 8. SECURITY DEFINER Privilege Lockdown (R2.3)
+-- In PostgreSQL, functions grant EXECUTE to PUBLIC by default.
+-- Explicitly revoke ALL from PUBLIC and anon for all SECURITY DEFINER
+-- functions, granting EXECUTE only to authenticated callers where intended,
+-- and restricting trigger functions strictly from direct invocation.
+-- ------------------------------------------------------------
+
+-- A. Public RPC / Helper Functions:
+-- Revoke from PUBLIC and anon, grant EXECUTE to authenticated
+REVOKE ALL ON FUNCTION public.current_user_role() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_user_role() TO authenticated;
+
+REVOKE ALL ON FUNCTION public.current_user_dept() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_user_dept() TO authenticated;
+
+REVOKE ALL ON FUNCTION public.current_role() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_role() TO authenticated;
+
+REVOKE ALL ON FUNCTION public.current_dept() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_dept() TO authenticated;
+
+REVOKE ALL ON FUNCTION public.transition_complaint(UUID, complaint_status, TEXT, INTEGER) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.transition_complaint(UUID, complaint_status, TEXT, INTEGER) TO authenticated;
+
+REVOKE ALL ON FUNCTION public.assign_specialist(UUID, UUID, TEXT, INTEGER) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.assign_specialist(UUID, UUID, TEXT, INTEGER) TO authenticated;
+
+-- B. Trigger Functions:
+-- Revoke EXECUTE from PUBLIC, anon, and authenticated so they cannot be invoked directly via RPC
+REVOKE ALL ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.protect_profile_sensitive_columns() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.enforce_status_via_function() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.record_initial_complaint_status_history() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.process_audit_log() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.block_audit_log_modification() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_status_change() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_assignment() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_new_comment() FROM PUBLIC, anon, authenticated;

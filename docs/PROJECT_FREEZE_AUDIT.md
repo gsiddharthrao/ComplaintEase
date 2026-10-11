@@ -3,7 +3,7 @@
 > **Status:** PROJECT FREEZE ACHIEVED  
 > **Repository:** `d:\complaint_project`  
 > **Monorepo Topology:** `@complaintease/shared`, `@complaintease/api`, `@complaintease/web`  
-> **Build Status:** 0 TypeScript Errors • 38/38 Vitest Tests Passed • 100% Production Build Clean
+> **Build Status:** 0 TypeScript Errors • 143/143 Vitest Tests Passed (9 Suites) + 16 Live SQL Tests • 100% Production Build Clean
 
 ---
 
@@ -60,17 +60,46 @@ The repository was verified using clean build and execution commands:
 pnpm -r typecheck
 # Result: 0 errors across packages/shared, apps/api, apps/web
 
-# 2. Automated Test Suites: 5 test files, 38 passing tests
+# 2. Automated Test Suites: 9 test files, 143 passing tests
 pnpm -r test
 # Result:
+# ✓ src/test/challenger-2-adversarial.test.ts (68 tests)
+# ✓ src/test/security-fixes.test.ts (17 tests)
+# ✓ src/test/validators.test.ts (15 tests)
+# ✓ src/test/workflow-and-env.test.ts (11 tests)
+# ✓ src/test/error-handler.test.ts (9 tests)
+# ✓ src/test/concurrency.test.ts (8 tests)
 # ✓ src/test/state-machine.test.ts (6 tests)
-# ✓ src/test/validators.test.ts (13 tests)
-# ✓ src/test/security-fixes.test.ts (10 tests)
 # ✓ src/test/role-permissions.test.ts (5 tests)
 # ✓ src/test/api-endpoints.test.ts (4 tests)
-# Test Files: 5 passed (5), Tests: 38 passed (38)
+# Test Files: 9 passed (9), Tests: 143 passed (143)
 
-# 3. Production Build: Full monorepo bundling
+# 3. Live PostgreSQL Integration Script (16 tests across RLS, triggers, functions)
+psql -f supabase/tests/rls_and_concurrency_test.sql
+# Result:
+# PASS: Test 1 - Direct status update blocked by trigger (SQLSTATE P0005)
+# PASS: Test 2 - Invalid transition correctly rejected (SQLSTATE P0001)
+# PASS: Test 3 - Optimistic concurrency lock correctly caught conflict (SQLSTATE P0003)
+# PASS: Test 4 - Valid transition succeeded, version bumped to 2, status_history recorded
+# PASS: Test 5 - Employee reopening unresolved complaint blocked (SQLSTATE P0001)
+# PASS: Test 6 - Employee forbidden from progressing complaint (SQLSTATE 42501)
+# PASS: Test 7A - UPDATE on audit_logs blocked by tamper-proofing trigger (SQLSTATE P0006/55000)
+# PASS: Test 7B - DELETE on audit_logs blocked by tamper-proofing trigger (SQLSTATE P0006/55000)
+# PASS: Test 8 - Employee RLS logic excludes internal comments
+# PASS: Test 9 - Profile role update blocked for non-admin (SQLSTATE 42501)
+# PASS: Test 10 - Complaint insert automatically recorded initial status_history row via trigger
+# PASS: Test 11 - State machine table has all 23 canonical transitions and terminal states have 0 outgoing transitions
+# PASS: Test 12 - assign_specialist RPC executed atomically with assignment and transition
+# PASS: Test 13A - Non-admin profile department_id update blocked (SQLSTATE 42501)
+# PASS: Test 13B - Non-admin profile id update blocked (SQLSTATE 42501)
+# PASS: Test 13C - Non-admin profile created_at update blocked (SQLSTATE 42501)
+# PASS: Test 14 - Non-admin updating permitted profile fields (full_name, avatar_url) succeeds
+# PASS: Test 15A - Admin assignment to closed complaint blocked (SQLSTATE P0001)
+# PASS: Test 15B - Admin assignment to rejected complaint blocked (SQLSTATE P0001)
+# PASS: Test 16 - anon role has NO execute privilege on assign_specialist
+# === ALL RLS & INTEGRITY TESTS PASSED SUCCESSFULLY ===
+
+# 4. Production Build: Full monorepo bundling
 pnpm -r build
 # Result:
 # packages/shared: ESM + CJS + DTS built via tsup (0 errors)
@@ -151,7 +180,7 @@ flowchart TD
 - ❌ **Do NOT claim:** *"I built my own custom cryptography engine for authentication."*  
   ✅ **Say instead:** *"I leveraged Supabase Auth / GoTrue (which implements industry-standard bcrypt and signed RS256 JWTs) and focused my engineering on application authorization, RLS policies, and token-scoped database clients."*
 - ❌ **Do NOT claim:** *"The frontend has 100% Cypress/Playwright browser test coverage."*  
-  ✅ **Say instead:** *"We focused automated testing on the high-risk backend boundaries — role permissions, state machine transitions, BOLA/IDOR prevention, and Zod validators (38 Vitest tests) — and performed interactive exploratory testing on frontend workflows."*
+  ✅ **Say instead:** *"We focused automated testing on the high-risk backend boundaries — role permissions, state machine transitions, BOLA/IDOR prevention, and Zod validators (143 Vitest tests across 9 suites + 16 live SQL tests) — and performed interactive exploratory testing on frontend workflows."*
 
 ---
 
