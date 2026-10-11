@@ -31,12 +31,16 @@ export const NewComplaint: React.FC = () => {
   const [geoError, setGeoError] = useState<string | null>(null);
   const [locationAddress, setLocationAddress] = useState('');
 
-  // Image Upload state
+  // Safe 2-Stage Attachment state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFileName, setImageFileName] = useState<string | null>(null);
   const [imageFileSize, setImageFileSize] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [createdComplaintId, setCreatedComplaintId] = useState<string | null>(null);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [isRetryingAttachment, setIsRetryingAttachment] = useState(false);
 
   // Fetch departments & categories
   const { data: departments = [], isLoading: deptsLoading } = useQuery({
@@ -107,7 +111,7 @@ export const NewComplaint: React.FC = () => {
     setGeoError(null);
   };
 
-  // Image Upload Handlers
+  // Safe 2-Stage Attachment Handlers
   const handleFileProcess = (file: File) => {
     setImageError(null);
     if (!file.type.startsWith('image/')) {
@@ -119,14 +123,10 @@ export const NewComplaint: React.FC = () => {
       return;
     }
 
+    setSelectedFile(file);
     setImageFileName(file.name);
     setImageFileSize(`${(file.size / 1024).toFixed(1)} KB`);
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,15 +151,64 @@ export const NewComplaint: React.FC = () => {
   };
 
   const handleClearImage = () => {
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setSelectedFile(null);
     setImagePreview(null);
     setImageFileName(null);
     setImageFileSize(null);
     setImageError(null);
   };
 
+  const uploadAttachmentForComplaint = async (complaintId: string, file: File) => {
+    const { upload_url, storage_path } = await api.attachments.getUploadUrl(complaintId, {
+      file_name: file.name,
+      file_size: file.size,
+      mime_type: file.type as any,
+    });
+
+    const res = await fetch(upload_url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+      },
+      body: file,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Upload to storage failed with status ${res.status}`);
+    }
+
+    await api.attachments.confirm(complaintId, {
+      file_name: file.name,
+      file_size: file.size,
+      mime_type: file.type as any,
+      storage_path,
+    });
+  };
+
+  const handleRetryAttachment = async () => {
+    if (!createdComplaintId || !selectedFile) return;
+    setIsRetryingAttachment(true);
+    setAttachmentError(null);
+    try {
+      await uploadAttachmentForComplaint(createdComplaintId, selectedFile);
+      await queryClient.invalidateQueries({ queryKey: ['attachments', createdComplaintId] });
+      navigate(`/complaints/${createdComplaintId}`);
+    } catch (err: any) {
+      setAttachmentError(err?.message || 'Attachment retry failed. Please try again or proceed to ticket.');
+    } finally {
+      setIsRetryingAttachment(false);
+    }
+  };
+
   const onSubmit = async (data: CreateComplaintInput) => {
     setServerError(null);
+    setAttachmentError(null);
+    setCreatedComplaintId(null);
     try {
+      // Stage 1: Create complaint record first (image_url: null)
       const payload: CreateComplaintInput = {
         ...data,
         location_lat: coords ? coords.lat : null,
@@ -167,12 +216,28 @@ export const NewComplaint: React.FC = () => {
         location_address:
           locationAddress.trim() ||
           (coords ? `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}` : null),
-        image_url: imagePreview || null,
+        image_url: null,
       };
 
       const result = await api.complaints.create(payload);
       await queryClient.invalidateQueries({ queryKey: ['complaints'] });
       await queryClient.invalidateQueries({ queryKey: ['admin-complaints-feed'] });
+
+      // Stage 2: If file is selected, upload via signed storage URL
+      if (selectedFile) {
+        try {
+          await uploadAttachmentForComplaint(result.id, selectedFile);
+          await queryClient.invalidateQueries({ queryKey: ['attachments', result.id] });
+        } catch (attachErr: any) {
+          // Recoverable state: complaint succeeded, attachment failed
+          setCreatedComplaintId(result.id);
+          setAttachmentError(
+            attachErr?.message || 'Complaint created, but attachment upload failed. You can retry or view details.',
+          );
+          return;
+        }
+      }
+
       navigate(`/complaints/${result.id}`);
     } catch (err: any) {
       setServerError(err.message || 'Failed to submit complaint');
@@ -201,6 +266,40 @@ export const NewComplaint: React.FC = () => {
           <div className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-300 flex items-center space-x-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
             <span>{serverError}</span>
+          </div>
+        )}
+
+        {createdComplaintId && (
+          <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-200 space-y-3">
+            <div className="flex items-start space-x-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+              <div>
+                <p className="font-bold">
+                  Complaint was successfully created (ID: {createdComplaintId.slice(0, 8)}), but the attachment upload encountered an error.
+                </p>
+                <p className="mt-1 text-amber-700 dark:text-amber-300">
+                  {attachmentError || 'You can retry the upload or proceed directly to the complaint details.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleRetryAttachment}
+                disabled={isRetryingAttachment}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRetryingAttachment ? 'animate-spin' : ''}`} />
+                <span>Retry Attachment Upload</span>
+              </button>
+              <Link
+                to={`/complaints/${createdComplaintId}`}
+                className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-slate-700 text-amber-900 dark:text-amber-200 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
+              >
+                <span>Go to Complaint</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
         )}
 

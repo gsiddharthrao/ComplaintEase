@@ -150,6 +150,47 @@ describe('Security Fix Regression Tests', () => {
       expect(res.status).toBe(201);
       expect(res.body).toHaveProperty('data');
     });
+
+    it('rejects upload-url generation with disallowed MIME types', async () => {
+      const res = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments/upload-url')
+        .send({
+          file_name: 'script.sh',
+          file_size: 1024,
+          mime_type: 'application/x-sh',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('accepts upload-url generation with whitelisted MIME types', async () => {
+      const res = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments/upload-url')
+        .send({
+          file_name: 'evidence.png',
+          file_size: 2048,
+          mime_type: 'image/png',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveProperty('upload_url');
+      expect(res.body.data).toHaveProperty('storage_path');
+    });
+
+    it('rejects confirmation with unwhitelisted MIME types', async () => {
+      const res = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments')
+        .send({
+          file_name: 'payload.html',
+          file_size: 1024,
+          mime_type: 'text/html',
+          storage_path: 'user-123/complaint-abc/uuid-file.html',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
   });
 
   describe('Admin Self-Demotion Prevention', () => {

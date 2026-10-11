@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const envSchema = z.object({
+export const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   SUPABASE_URL: z.string().url('SUPABASE_URL must be a valid URL').default('https://placeholder.supabase.co'),
@@ -15,7 +15,29 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
 });
 
-const parsed = envSchema.safeParse(process.env);
+export function validateEnv(rawEnv: Record<string, string | undefined>) {
+  const parsed = envSchema.safeParse(rawEnv);
+  const nodeEnv = rawEnv.NODE_ENV || parsed.data?.NODE_ENV || 'development';
+
+  if (nodeEnv === 'production') {
+    if (!parsed.success) {
+      throw new Error(`Production environment validation failed: ${parsed.error.message}`);
+    }
+    const isPlaceholder = (val: string) =>
+      val.toLowerCase().includes('placeholder') || val.toLowerCase().includes('mock-');
+    if (
+      isPlaceholder(parsed.data.SUPABASE_URL) ||
+      isPlaceholder(parsed.data.SUPABASE_ANON_KEY) ||
+      isPlaceholder(parsed.data.SUPABASE_SERVICE_ROLE_KEY)
+    ) {
+      throw new Error('Production environment cannot start with placeholder Supabase credentials.');
+    }
+  }
+
+  return parsed;
+}
+
+const parsed = validateEnv(process.env);
 
 if (!parsed.success) {
   console.warn('⚠️ Missing or invalid environment variables. Using development fallbacks.');
@@ -34,4 +56,3 @@ export const env = parsed.success
       RATE_LIMIT_WINDOW_MS: 900000,
       LOG_LEVEL: 'info' as const,
     };
-

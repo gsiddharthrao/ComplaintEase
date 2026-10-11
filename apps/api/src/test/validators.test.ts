@@ -125,7 +125,36 @@ describe('Validator Unit Tests', () => {
         password: 'Password123!',
         full_name: 'Test User',
       };
-      expect(registerSchema.safeParse(strong).success).toBe(true);
+      const parsedStrong = registerSchema.safeParse(strong);
+      expect(parsedStrong.success).toBe(true);
+      if (parsedStrong.success) {
+        expect(parsedStrong.data.role).toBe('employee');
+      }
+    });
+
+    it('rejects public self-registration attempting to claim admin role', () => {
+      const exploitPayload = {
+        email: 'attacker@example.com',
+        password: 'Password123!',
+        full_name: 'Attacker User',
+        role: 'admin',
+      };
+      const result = registerSchema.safeParse(exploitPayload);
+      expect(result.success).toBe(false);
+    });
+
+    it('accepts valid registration with employee role', () => {
+      const validEmployee = {
+        email: 'employee@example.com',
+        password: 'Password123!',
+        full_name: 'Employee User',
+        role: 'employee',
+      };
+      const result = registerSchema.safeParse(validEmployee);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.role).toBe('employee');
+      }
     });
   });
 

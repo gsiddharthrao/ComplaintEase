@@ -153,6 +153,7 @@ erDiagram
 | `status_history` | Append-only audit timeline recording every lifecycle state transition and author reasoning. |
 | `audit_logs` | Tamper-resistant, append-only trigger log capturing row-level mutation diffs for compliance. |
 | `notifications` | Asynchronous in-app user notifications delivered via Supabase Realtime WebSocket events. |
+| `allowed_transitions` | Defines the 23 valid directed edges of the complaint lifecycle state machine. |
 
 ---
 

@@ -10,6 +10,7 @@ import { CommentsThread } from '../components/complaints/CommentsThread.js';
 import { AttachmentsList } from '../components/complaints/AttachmentsList.js';
 import {
   ComplaintStatus,
+  ALLOWED_TRANSITIONS,
 } from '@complaintease/shared';
 import {
   ArrowLeft,
@@ -49,7 +50,6 @@ export const ComplaintDetail: React.FC = () => {
     queryKey: ['complaint', id],
     queryFn: () => api.complaints.get(id!),
     enabled: Boolean(id),
-    refetchInterval: 3000,
   });
 
   // Fetch users for assignment if admin
@@ -74,6 +74,7 @@ export const ComplaintDetail: React.FC = () => {
     },
     onError: (err: any) => {
       setTransitionError(err.message || 'Status transition failed.');
+      queryClient.invalidateQueries({ queryKey: ['complaint', id] });
     },
   });
 
@@ -357,7 +358,7 @@ export const ComplaintDetail: React.FC = () => {
             {/* Quick Resolution Buttons */}
             <div className="flex flex-wrap items-center gap-2">
               {/* Start Work / Under Progress button */}
-              {currentStatus !== 'in_progress' && currentStatus !== 'closed' && (
+              {ALLOWED_TRANSITIONS[currentStatus]?.includes('in_progress') && (
                 <button
                   type="button"
                   onClick={handleQuickInProgress}
@@ -370,7 +371,7 @@ export const ComplaintDetail: React.FC = () => {
               )}
 
               {/* Mark Resolved button */}
-              {currentStatus !== 'resolved' && currentStatus !== 'closed' && (
+              {ALLOWED_TRANSITIONS[currentStatus]?.includes('resolved') && (
                 <button
                   type="button"
                   onClick={handleQuickResolve}
@@ -383,7 +384,7 @@ export const ComplaintDetail: React.FC = () => {
               )}
 
               {/* Close Ticket button */}
-              {currentStatus !== 'closed' && (
+              {ALLOWED_TRANSITIONS[currentStatus]?.includes('closed') && (
                 <button
                   type="button"
                   onClick={() => handleExecuteTransition('closed')}
@@ -399,22 +400,13 @@ export const ComplaintDetail: React.FC = () => {
                 </button>
               )}
 
-              {/* If ticket is already closed */}
-              {currentStatus === 'closed' && (
-                <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-100 dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span>This ticket is closed and archived in the Closed Tickets section.</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleExecuteTransition('reopened')}
-                    disabled={transitionMutation.isPending}
-                    className="py-1.5 px-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 shrink-0"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reopen Ticket</span>
-                  </button>
+              {/* If ticket is in terminal state */}
+              {ALLOWED_TRANSITIONS[currentStatus]?.length === 0 && (
+                <div className="w-full flex items-center gap-3 bg-slate-100 dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    This ticket is {currentStatus} (terminal state). No further transitions are permitted.
+                  </span>
                 </div>
               )}
             </div>

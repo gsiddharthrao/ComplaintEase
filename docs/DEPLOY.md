@@ -20,7 +20,7 @@ Follow these steps to deploy ComplaintEase live to **Supabase**, **Render**, and
    supabase login
    supabase link --project-ref <your-project-ref>
    ```
-   Apply all migrations in sequential order (or execute `001_extensions_and_enums.sql` through `009_complaint_location_image.sql` in the Supabase SQL Editor):
+   Apply all migrations in sequential order (or execute `001_extensions_and_enums.sql` through `010_security_workflow_hardening.sql` in the Supabase SQL Editor):
    ```bash
    supabase db push
    ```
@@ -43,7 +43,7 @@ Follow these steps to deploy ComplaintEase live to **Supabase**, **Render**, and
    Alternatively, pass them as arguments: `pnpm seed <email> <password> [name]`.
 
 5. **Verify Storage Bucket:**
-   - Check **Storage** in the Supabase Dashboard. Ensure the private bucket named `attachments` exists (created automatically by migration 007).
+   - Check **Storage** in the Supabase Dashboard. Ensure the private bucket named `complaint-attachments` (or `attachments`) exists and has RLS policies active (provisioned in migrations 007 and 010).
 
 ---
 

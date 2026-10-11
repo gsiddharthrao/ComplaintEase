@@ -81,12 +81,16 @@ This document captures every major engineering trade-off, architectural choice, 
 
 ---
 
-## ADR 8: Live Geolocation Capture and Photo Evidence Pipeline
+## ADR 8: Two-Stage Signed Storage Pipeline & Live Telemetry Evidence
 
-- **Decision:** Employees filing complaints can capture live GPS coordinates (`navigator.geolocation.getCurrentPosition`), physical landmark/room descriptions, and upload photographic evidence (stored directly with the incident record via `image_url` and optionally via the `attachments` storage pipeline). These fields are indexed (`idx_complaints_location`) and forwarded in real time to the Administrator's Incident & Geotag Feed with direct Google Maps navigation links and high-res lightbox modals.
+- **Decision:** Employees filing complaints capture live GPS coordinates (`navigator.geolocation.getCurrentPosition`), physical landmark/room descriptions, and upload photographic evidence via a **two-stage signed Storage workflow**:
+  1. **Stage 1 (Incident Submission):** The complaint record is created first via `POST /complaints` with `image_url: null`. This guarantees that the core incident report and telemetry are persistently captured even if network conditions or storage quotas disrupt file uploading.
+  2. **Stage 2 (Signed Storage Upload & Association):** If an evidence photo was selected, the client requests a signed upload URL or uploads directly to the private Supabase Storage bucket (`complaint-attachments` / `attachments`) under `{complaint_id}/{filename}` using the caller's authenticated session. Upon completion, the complaint is updated with the storage path or registered in the `attachments` table.
+  3. **Recoverable Error Handling:** If the photo upload fails in Stage 2, the user is presented with a non-fatal recovery banner displaying their registered Complaint Reference ID, a direct retry action for the upload, and a link to view the ticket.
+  4. **Legacy Backward Compatibility:** Lightbox and thumbnail viewers support both modern storage-signed URLs and legacy `image_url` strings (HTTP/data URIs), ensuring historical records render without regression.
 - **Alternatives Rejected:**
-  - *Text-Only Location Description:* Requiring users to describe locations in freeform text without verified GPS telemetry.
-  - *Blocking Offline Uploads without Cloud Storage:* Enforcing mandatory S3/Supabase bucket roundtrips for local evaluation, which causes file upload failures during local demos without active cloud credentials.
+  - *Base64 Data URL Inlining:* Storing raw image strings (`data:image/jpeg;base64,...`) directly in the PostgreSQL `image_url` column. Rejected because multi-megabyte base64 strings bloat table storage, exhaust WAL replication buffers, slow down list queries, and degrade PostgREST payload throughput.
+  - *Synchronous Pre-Upload Blocking:* Requiring the file upload to complete prior to complaint creation. Rejected because any storage downtime or upload timeout would cause the user to lose their entered incident description and coordinates.
 - **Trade-offs & Rationale:**
-  - *Pros:* Direct GPS telemetry and photographic evidence drastically cut incident response times by allowing maintenance staff to pinpoint exact hardware/facility locations on campus. Visual evidence prevents fraudulent or ambiguous claims.
-  - *Cons:* Browser privacy settings may prompt or block GPS permissions on desktop environments. Mitigated by providing manual physical landmark/bay text inputs as a fallback.
+  - *Pros:* Decouples database record creation from binary object storage latency and failures; preserves auditability; keeps database rows lightweight; enforces strict MIME validation (`image/jpeg`, `image/png`, `image/webp`, `application/pdf`) and file size limits (10 MB).
+  - *Cons:* Requires client-side two-stage orchestration and recoverable error UI states.

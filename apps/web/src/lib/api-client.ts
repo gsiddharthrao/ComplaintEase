@@ -50,9 +50,10 @@ async function fetchWithAuth<T>(path: string, options: RequestInit = {}): Promis
         errorMsg = detailedMessages;
       }
     }
-    const err = new Error(errorMsg) as Error & { code?: string; details?: any };
+    const err = new Error(errorMsg) as Error & { code?: string; details?: any; status?: number };
     err.code = body?.error?.code;
     err.details = body?.error?.details;
+    err.status = response.status;
     throw err;
   }
 

@@ -6,16 +6,27 @@ import { randomUUID } from 'crypto';
 
 export const attachmentsRouter = Router();
 
-const uploadUrlSchema = z.object({
+export const ALLOWED_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'application/pdf',
+  'text/plain',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+] as const;
+
+export const uploadUrlSchema = z.object({
   file_name: z.string().min(1).max(255),
   file_size: z.number().int().min(1).max(10485760), // max 10MB
-  mime_type: z.string().min(1).max(100),
+  mime_type: z.enum(ALLOWED_MIME_TYPES),
 });
 
-const confirmAttachmentSchema = z.object({
+export const confirmAttachmentSchema = z.object({
   file_name: z.string().min(1).max(255),
   file_size: z.number().int().min(1).max(10485760),
-  mime_type: z.string().min(1).max(100),
+  mime_type: z.enum(ALLOWED_MIME_TYPES),
   storage_path: z.string().min(1),
 });
 
@@ -51,7 +62,8 @@ attachmentsRouter.post(
         return;
       }
 
-      const fileExtension = file_name.split('.').pop() || 'dat';
+      const rawExt = file_name.includes('.') ? file_name.split('.').pop() : 'dat';
+      const fileExtension = (rawExt || 'dat').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'dat';
       const storagePath = `${req.user!.id}/${id}/${randomUUID()}.${fileExtension}`;
 
       const { data, error } = await supabase.storage

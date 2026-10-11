@@ -7,7 +7,6 @@ import {
   transitionSchema,
   assignSchema,
 } from '@complaintease/shared';
-import { getAdminClient } from '../utils/supabase.js';
 
 export const complaintsRouter = Router();
 
@@ -254,16 +253,7 @@ complaintsRouter.post(
         throw error;
       }
 
-      // Record initial history
-      const adminSupabase = getAdminClient();
-      await adminSupabase.from('status_history').insert({
-        complaint_id: data.id,
-        from_status: null,
-        to_status: 'submitted',
-        changed_by: req.user!.id,
-        note: 'Complaint submitted by employee',
-      });
-
+      // Initial status_history is atomically recorded via database trigger trg_complaint_initial_history
       res.status(201).json({ data });
     } catch (err) {
       next(err);
@@ -282,33 +272,15 @@ complaintsRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const { new_status, note } = req.body;
+      const { new_status, note, expected_version } = req.body;
       const supabase = req.supabase!;
 
-      // Fetch current complaint to eliminate version conflicts on rapid transitions
-      const { data: currentComp, error: compErr } = await supabase
-        .from('complaints')
-        .select('id, version, status')
-        .eq('id', id)
-        .single();
-
-      if (compErr || !currentComp) {
-        res.status(404).json({
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Complaint not found or inaccessible',
-            requestId: req.id,
-          },
-        });
-        return;
-      }
-
-      // Call database function transition_complaint with current verified row version
+      // Call database function transition_complaint passing client expected_version directly for OCC
       const { data, error } = await supabase.rpc('transition_complaint', {
         p_complaint_id: id,
         p_new_status: new_status,
         p_note: note || null,
-        p_expected_version: currentComp.version,
+        p_expected_version: expected_version,
       });
 
       if (error) {
@@ -339,64 +311,21 @@ complaintsRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const { assigned_to, note } = req.body;
+      const { assigned_to, note, expected_version } = req.body;
       const supabase = req.supabase!;
 
-      // Check complaint exists and is accessible
-      const { data: complaint, error: compErr } = await supabase
-        .from('complaints')
-        .select('id, department_id, status, version')
-        .eq('id', id)
-        .single();
-
-      if (compErr || !complaint) {
-        res.status(404).json({
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Complaint not found or inaccessible',
-            requestId: req.id,
-          },
-        });
-        return;
-      }
-
-      // Deactivate prior assignments
-      await supabase
-        .from('assignments')
-        .update({ is_active: false })
-        .eq('complaint_id', id)
-        .eq('is_active', true);
-
-      // Insert new active assignment
-      const { data: newAssignment, error: assignErr } = await supabase
-        .from('assignments')
-        .insert({
-          complaint_id: id,
-          assigned_to,
-          assigned_by: req.user!.id,
-          is_active: true,
-          note: note || null,
-        })
-        .select()
-        .single();
-
-      if (assignErr) {
-        throw assignErr;
-      }
-
-      // If status is submitted or under_review, transition directly to assigned
-      if (complaint.status === 'submitted' || complaint.status === 'under_review') {
-        await supabase.rpc('transition_complaint', {
-          p_complaint_id: id,
-          p_new_status: 'assigned',
-          p_note: note ? `Assigned with note: ${note}` : 'Assigned to specialist',
-          p_expected_version: complaint.version,
-        });
-      }
-
-      res.status(201).json({
-        data: newAssignment,
+      const { data, error } = await supabase.rpc('assign_specialist', {
+        p_complaint_id: id,
+        p_assigned_to: assigned_to,
+        p_note: note || null,
+        p_expected_version: expected_version ?? null,
       });
+
+      if (error) {
+        throw error;
+      }
+
+      res.status(201).json({ data });
     } catch (err) {
       next(err);
     }

@@ -5,8 +5,9 @@ import { useAuth } from '../context/AuthContext.js';
 
 /**
  * Sets up live WebSocket subscriptions via Supabase Realtime
- * for complaints, comments, and in-app notifications.
- * Automatically invalidates corresponding TanStack Query caches.
+ * for complaints, comments, attachments, and in-app notifications.
+ * Automatically invalidates corresponding TanStack Query caches,
+ * handling INSERT, UPDATE, and DELETE events.
  */
 export function useRealtime() {
   const queryClient = useQueryClient();
@@ -25,8 +26,9 @@ export function useRealtime() {
           console.log('⚡ Realtime Complaint Change:', payload);
           queryClient.invalidateQueries({ queryKey: ['complaints'] });
           queryClient.invalidateQueries({ queryKey: ['admin-complaints-feed'] });
-          if ((payload.new as any)?.id) {
-            queryClient.invalidateQueries({ queryKey: ['complaint', (payload.new as any).id] });
+          const complaintId = (payload.new as any)?.id || (payload.old as any)?.id;
+          if (complaintId) {
+            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
           }
         },
       )
@@ -40,16 +42,35 @@ export function useRealtime() {
         { event: '*', schema: 'public', table: 'comments' },
         (payload) => {
           console.log('⚡ Realtime Comment Change:', payload);
-          if ((payload.new as any)?.complaint_id) {
+          const complaintId = (payload.new as any)?.complaint_id || (payload.old as any)?.complaint_id;
+          if (complaintId) {
             queryClient.invalidateQueries({
-              queryKey: ['comments', (payload.new as any).complaint_id],
+              queryKey: ['comments', complaintId],
             });
           }
         },
       )
       .subscribe();
 
-    // 3. Channel for user notifications
+    // 3. Channel for attachments changes
+    const attachmentChannel = supabase
+      .channel('realtime:attachments')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'attachments' },
+        (payload) => {
+          console.log('📎 Realtime Attachment Change:', payload);
+          const complaintId = (payload.new as any)?.complaint_id || (payload.old as any)?.complaint_id;
+          if (complaintId) {
+            queryClient.invalidateQueries({
+              queryKey: ['attachments', complaintId],
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    // 4. Channel for user notifications
     const notificationChannel = supabase
       .channel(`realtime:notifications:${user.id}`)
       .on(
@@ -70,8 +91,8 @@ export function useRealtime() {
     return () => {
       supabase.removeChannel(complaintChannel);
       supabase.removeChannel(commentChannel);
+      supabase.removeChannel(attachmentChannel);
       supabase.removeChannel(notificationChannel);
     };
   }, [user, queryClient]);
 }
-

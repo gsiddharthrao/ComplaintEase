@@ -11,6 +11,9 @@ import { v1Router } from './routes/index.js';
 
 export const app = express();
 
+// Trust reverse proxy (e.g. Nginx, Render, Vercel)
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet());
 
@@ -51,12 +54,28 @@ if (env.NODE_ENV !== 'test') {
   );
 }
 
-// Global Rate Limiting
-const limiter = rateLimit({
+// Strict limiter for authentication and mutation routes
+const authMutationLimiter = rateLimit({
   windowMs: env.RATE_LIMIT_WINDOW_MS,
-  max: env.RATE_LIMIT_MAX,
+  max: Math.min(env.RATE_LIMIT_MAX, 50),
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => env.NODE_ENV === 'test',
+  message: {
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'Too many auth or mutation requests from this IP. Please wait before retrying.',
+    },
+  },
+});
+
+// General limiter for read queries
+const generalReadLimiter = rateLimit({
+  windowMs: env.RATE_LIMIT_WINDOW_MS,
+  max: Math.max(env.RATE_LIMIT_MAX, 300),
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => env.NODE_ENV === 'test',
   message: {
     error: {
       code: 'RATE_LIMIT_EXCEEDED',
@@ -64,7 +83,14 @@ const limiter = rateLimit({
     },
   },
 });
-app.use('/api/', limiter);
+
+app.use('/api/v1/auth', authMutationLimiter);
+app.use('/api/', (req, res, next) => {
+  if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method)) {
+    return authMutationLimiter(req, res, next);
+  }
+  return generalReadLimiter(req, res, next);
+});
 
 // Mount versioned API routes
 app.use('/api/v1', v1Router);

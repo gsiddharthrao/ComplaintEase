@@ -180,16 +180,28 @@ This comprehensive guide is prepared specifically for defending this enterprise 
 > PostgreSQL executes the join in a single SQL query, reducing round-trips from $O(N)$ to exactly $O(1)$.
 
 ### 31. Why should the backend never use the Supabase `service_role` key for user queries?
-> **Answer:** The `service_role` key completely bypasses Row Level Security. If used for user queries, the database runs everything with superuser privileges, forfeiting database-level security and placing the entire burden of access control on application code.
+> **Answer:** The `service_role` key completely bypasses PostgreSQL Row Level Security (RLS). If used for user queries, the database runs every statement with superuser privileges, forfeiting database-level security and placing the entire burden of access control on application code.
+> In ComplaintEase, user requests execute strictly through `createUserClient(jwt)` bound to the caller's session token. Previous revisions relied on `getAdminClient()` in `POST /complaints` because users lacked direct INSERT privileges on `status_history`. In Migration 010, this was solved via an atomic database trigger (`trg_complaint_initial_history` executing `record_initial_complaint_status_history()`), completely eliminating `getAdminClient` from user-facing mutation paths and preserving true RLS boundaries.
 
 ### 32. What is the centralized error handling pattern in `errorHandler`?
-> **Answer:** The middleware intercepts all errors passed to `next(err)`. It maps known PostgreSQL error codes (`P0001` -> 400, `P0002` -> 404, `P0003` -> 409, `42501` -> 403, `P0006` -> 403) and formats every error into a predictable JSON shape containing `code`, `message`, `details`, and `requestId`.
+> **Answer:** The middleware intercepts all errors passed to `next(err)` and maps PostgreSQL, PostgREST, and application error codes to structured HTTP responses:
+> - `P0001` -> **HTTP 400 Bad Request** (Invalid state machine transition)
+> - `P0002` / `PGRST116` -> **HTTP 404 Not Found** (Complaint or resource does not exist)
+> - `P0003` -> **HTTP 409 Conflict** (Optimistic concurrency version mismatch)
+> - `P0004` -> **HTTP 403 Forbidden** (Unauthorized state machine transition)
+> - `42501` -> **HTTP 403 Forbidden** (PostgreSQL insufficient privilege / RLS violation / profile role escalation attempt)
+> - `P0005` -> **HTTP 403 Forbidden** (Direct status update blocked by trigger)
+> - `P0006` / `55000` -> **HTTP 403 Forbidden** (Tamper-resistant audit log mutation blocked)
+> Every error response formats into a standardized JSON payload: `{ error: { code, message, details }, requestId }`. In production (`NODE_ENV=production`), internal database exceptions and stack traces are sanitized to generic error messages to prevent data leakage, while raw errors are logged securely via Pino with correlation request IDs.
 
 ### 33. Why use `pino` instead of `console.log`?
 > **Answer:** `console.log` is synchronous and blocks the Node.js event loop during heavy I/O. `pino` is an asynchronous, high-throughput structured logger that outputs JSON logs with request IDs, timestamps, and log levels (`info`, `warn`, `error`), making logs easily searchable in tools like Datadog, Grafana Loki, or CloudWatch.
 
 ### 34. How does the rate limiter protect the API?
-> **Answer:** `express-rate-limit` tracks IP request frequency within a configurable time window (15 minutes). If an IP exceeds 100 requests, it returns HTTP `429 Too Many Requests`, protecting against denial of service and credential brute-forcing.
+> **Answer:** `express-rate-limit` enforces rate limiting across two separate tiers:
+> 1. **`authMutationLimiter`:** Sensitive authentication, registration, and user modification endpoints are restricted to **50 requests per 15-minute window** to prevent brute-force attacks and credential stuffing.
+> 2. **`generalReadLimiter`:** Standard data retrieval and transition endpoints allow **300 requests per 15-minute window** to support active operations and dashboard navigation.
+> Furthermore, `app.set('trust proxy', 1)` is configured so Express accurately resolves client IPs from the front-most reverse proxy (`X-Forwarded-For` header) in containerized deployments (Render, Kubernetes, Cloudflare), preventing all users behind an ingress load balancer from sharing a single throttled quota.
 
 ---
 

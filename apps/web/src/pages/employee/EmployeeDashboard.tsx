@@ -59,7 +59,6 @@ export const EmployeeDashboard: React.FC = () => {
       }),
     staleTime: 0,
     refetchOnMount: 'always',
-    refetchInterval: 3000,
   });
 
   const allComplaints: ComplaintWithRelations[] = useMemo(() => {

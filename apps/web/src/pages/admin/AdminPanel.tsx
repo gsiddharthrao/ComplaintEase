@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { LocationMap } from '../../components/common/LocationMap.js';
 import { useAuth } from '../../context/AuthContext.js';
+import { ALLOWED_TRANSITIONS } from '@complaintease/shared';
 import type { UserRole, ComplaintStatus, ComplaintWithRelations } from '@complaintease/shared';
 
 export const AdminPanel: React.FC = () => {
@@ -76,7 +77,6 @@ export const AdminPanel: React.FC = () => {
     queryFn: () => api.complaints.list({ limit: 100 }),
     staleTime: 0,
     refetchOnMount: 'always',
-    refetchInterval: 3000,
   });
 
   const allComplaints: ComplaintWithRelations[] = Array.isArray(complaintsData)
@@ -618,7 +618,7 @@ export const AdminPanel: React.FC = () => {
 
                           {/* Quick 1-Click Status Progression Buttons */}
                           <div className="flex items-center gap-2 shrink-0">
-                            {c.status !== 'in_progress' && c.status !== 'resolved' && c.status !== 'closed' && (
+                            {ALLOWED_TRANSITIONS[c.status]?.includes('in_progress') && (
                               <button
                                 type="button"
                                 onClick={() =>
@@ -637,7 +637,7 @@ export const AdminPanel: React.FC = () => {
                               </button>
                             )}
 
-                            {c.status !== 'resolved' && c.status !== 'closed' && (
+                            {ALLOWED_TRANSITIONS[c.status]?.includes('resolved') && (
                               <button
                                 type="button"
                                 onClick={() =>
@@ -656,7 +656,7 @@ export const AdminPanel: React.FC = () => {
                               </button>
                             )}
 
-                            {c.status !== 'closed' && (
+                            {ALLOWED_TRANSITIONS[c.status]?.includes('closed') && (
                               <button
                                 type="button"
                                 onClick={() =>
@@ -676,24 +676,6 @@ export const AdminPanel: React.FC = () => {
                               >
                                 <Lock className="w-3 h-3" />
                                 <span>Close</span>
-                              </button>
-                            )}
-
-                            {c.status === 'closed' && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  quickTransitionMutation.mutate({
-                                    complaintId: c.id,
-                                    newStatus: 'reopened',
-                                    version: c.version,
-                                  })
-                                }
-                                disabled={quickTransitionMutation.isPending}
-                                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1"
-                                title="Reopen ticket"
-                              >
-                                <span>Reopen ↺</span>
                               </button>
                             )}
 

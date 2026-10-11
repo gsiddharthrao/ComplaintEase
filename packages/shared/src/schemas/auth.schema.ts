@@ -9,7 +9,7 @@ export const registerSchema = z.object({
     .regex(/[A-Z]/, 'Must contain an uppercase letter')
     .regex(/[0-9]/, 'Must contain a number'),
   full_name: z.string().min(2, 'At least 2 characters').max(100),
-  role: z.enum(['employee', 'admin']).default('employee'),
+  role: z.enum(['employee']).default('employee'),
   department_id: z.union([z.string().uuid(), z.literal(''), z.null()]).optional(),
 });
 

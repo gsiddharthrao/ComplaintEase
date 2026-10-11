@@ -4,7 +4,7 @@
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
 [![Supabase](https://img.shields.io/badge/Database-PostgreSQL%2015%20%2B%20Supabase-emerald.svg)](https://supabase.com/)
-[![Tests](https://img.shields.io/badge/Tests-38%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-68%20Passed-brightgreen.svg)]()
 [![Status](https://img.shields.io/badge/Project%20Status-Frozen%20%26%20Release%20Ready-purple.svg)]()
 
 **ComplaintEase Enterprise** is an incident reporting, plant operations, and complaint resolution platform built as an isolated TypeScript monorepo. It couples an authenticated React 18 client with a stateless Express API and a hardened PostgreSQL 15 / Supabase database.
@@ -98,7 +98,7 @@ complaintease/
 │       │   ├── middleware/     # requireAuth, requireRole, validate, errorHandler, rateLimit
 │       │   ├── routes/         # auth, complaints, comments, attachments, notifications, admin, health
 │       │   ├── scripts/        # seed-users.ts
-│       │   ├── test/           # 38 Vitest test suites (state-machine, validators, security-fixes, etc.)
+│       │   ├── test/           # 68 Vitest tests across 8 test suites (concurrency, error-handler, workflow, etc.)
 │       │   └── utils/          # supabase.ts (user RLS client & admin client), logger.ts (Pino)
 │       └── Dockerfile          # Multi-stage production container build
 ├── packages/
@@ -106,7 +106,7 @@ complaintease/
 │       ├── src/types/          # enums.ts, complaint.ts, user.ts, department.ts, category.ts
 │       └── src/schemas/        # complaint.schema.ts, auth.schema.ts, transition.schema.ts
 ├── supabase/
-│   ├── migrations/             # 9 immutable SQL migrations (001 to 009)
+│   ├── migrations/             # 10 immutable SQL migrations (001 to 010)
 │   ├── seed.sql                # Relational seed data and 10,000-row synthetic benchmark generator
 │   └── tests/                  # pgTAP / SQL verification scripts
 └── docs/                       # Comprehensive architecture, security, and interview documentation
@@ -147,7 +147,7 @@ cp apps/api/.env.example apps/api/.env
 # Edit both files with your Supabase Project URL and API keys
 
 # 4. Apply database migrations to Supabase
-# Paste supabase/migrations/001_extensions_and_enums.sql through 009 in the Supabase SQL Editor
+# Paste supabase/migrations/001_extensions_and_enums.sql through 010_security_workflow_hardening.sql in the Supabase SQL Editor
 # Then run supabase/seed.sql to populate departments and categories
 
 # 5. Provision the initial Administrator account
@@ -172,12 +172,15 @@ The codebase is strictly typed and verified:
 pnpm -r typecheck
 # Result: 0 errors, 0 warnings
 
-# Automated test execution (38 passing tests across 5 suites)
+# Automated test execution (68 passing tests across 8 suites)
 pnpm -r test
 # Result:
+# ✓ src/test/validators.test.ts (15 tests)
+# ✓ src/test/security-fixes.test.ts (13 tests)
+# ✓ src/test/workflow-and-env.test.ts (11 tests)
+# ✓ src/test/error-handler.test.ts (9 tests)
 # ✓ src/test/state-machine.test.ts (6 tests)
-# ✓ src/test/validators.test.ts (13 tests)
-# ✓ src/test/security-fixes.test.ts (10 tests)
+# ✓ src/test/concurrency.test.ts (5 tests)
 # ✓ src/test/role-permissions.test.ts (5 tests)
 # ✓ src/test/api-endpoints.test.ts (4 tests)
 

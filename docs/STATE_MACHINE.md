@@ -98,3 +98,37 @@ END IF;
    - On successful validation, `status` is updated, `version` is incremented (`version = version + 1`), and a corresponding entry is inserted into `status_history` in a single atomic transaction.
 4. **Trigger-Guarded Immutability:**
    - The `trg_block_direct_status_update` trigger blocks standard SQL `UPDATE complaints SET status = ...` queries unless executed within the authorized transition context.
+
+---
+
+## 4. Atomic Specialist Assignment (`assign_specialist()`)
+
+In addition to direct lifecycle transitions, assigning a specialist to an incident is encapsulated in the atomic PostgreSQL function `assign_specialist()`:
+
+```sql
+SELECT assign_specialist(
+  p_complaint_id     => '...',
+  p_specialist_id    => '...',
+  p_notes            => 'Assigned to HVAC Lead',
+  p_expected_version => 2
+);
+```
+
+### Guarantees:
+1. **Administrative Authorization:** Validates `current_user_role() = 'admin'`, raising `P0004` (403) for non-administrators.
+2. **Pessimistic Row Lock & Optimistic Versioning:** Acquires `SELECT ... FOR UPDATE` on the complaint and verifies `version = p_expected_version` (raising `P0003` on conflict).
+3. **Atomic State Synchronization:** If the complaint is currently in `submitted`, `under_review`, `in_progress`, or `reopened`, its status is automatically advanced to `assigned`, inserting a `status_history` record and incrementing `version`.
+4. **Single Active Specialist Constraint:** Deactivates any prior active assignments for this complaint (`UPDATE assignments SET is_active = false`) and creates the new active assignment row in a single atomic transaction.
+
+---
+
+## 5. Terminal State Invariants
+
+The states `closed` and `rejected` are strictly **terminal**:
+- `ALLOWED_TRANSITIONS['closed'] = []`
+- `ALLOWED_TRANSITIONS['rejected'] = []`
+
+Once a complaint transitions to either state:
+- Neither employees nor administrators can transition the ticket to any other status.
+- User interface action buttons are hidden, and a persistent terminal badge is rendered.
+- All historical comments, assignments, attachments, and status history entries remain preserved for forensic audit compliance.
