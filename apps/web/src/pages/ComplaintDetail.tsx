@@ -79,10 +79,11 @@ export const ComplaintDetail: React.FC = () => {
   });
 
   const assignMutation = useMutation({
-    mutationFn: (data: { assigned_to: string; note: string }) =>
+    mutationFn: (data: { assigned_to: string; note: string; expected_version?: number }) =>
       api.complaints.assign(id!, data),
     onSuccess: () => {
       setAssigneeId('');
+      setTransitionError(null);
       queryClient.invalidateQueries({ queryKey: ['complaint', id] });
       queryClient.invalidateQueries({ queryKey: ['complaints'] });
       queryClient.invalidateQueries({ queryKey: ['admin-complaints-feed'] });
@@ -93,10 +94,11 @@ export const ComplaintDetail: React.FC = () => {
   });
 
   const handleQuickAssign = (workerId: string) => {
-    if (!workerId) return;
+    if (!workerId || !complaint) return;
     assignMutation.mutate({
       assigned_to: workerId,
       note: 'Assigned via rapid management controls',
+      expected_version: complaint.version,
     });
   };
 
@@ -343,8 +345,8 @@ export const ComplaintDetail: React.FC = () => {
                   setAssigneeId(e.target.value);
                   handleQuickAssign(e.target.value);
                 }}
-                disabled={assignMutation.isPending}
-                className="w-full text-xs font-semibold text-slate-800 dark:text-slate-100 bg-transparent outline-none cursor-pointer"
+                disabled={assignMutation.isPending || currentStatus === 'closed' || currentStatus === 'rejected'}
+                className="w-full text-xs font-semibold text-slate-800 dark:text-slate-100 bg-transparent outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="" className="dark:bg-slate-800">⚡ Assign Worker / Field Specialist...</option>
                 {users.map((u) => (

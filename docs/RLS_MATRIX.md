@@ -55,14 +55,14 @@ All policies utilize the `SECURITY DEFINER` helper functions `current_user_role(
 
 ## Storage Objects (`storage.objects`) Policy Matrix
 
-Supabase Storage files are isolated in private buckets (`complaint-attachments` and `attachments`) under the path convention `{complaint_id}/{filename}`:
+Supabase Storage files are isolated in the private bucket `attachments` under the canonical path convention `<user_id>/<complaint_id>/<filename>` (with backward-compatible support for `<complaint_id>/<filename>`):
 
 | Bucket & Path | Operation | Role: `employee` | Role: `admin` |
 |---|---|---|---|
-| `complaint-attachments/{complaint_id}/*` | **SELECT** | Allowed if `complaints.created_by = auth.uid()` | Allowed (All objects) |
-| | **INSERT** | Allowed if `complaints.created_by = auth.uid()` | Allowed (All objects) |
+| `attachments/<user_id>/<complaint_id>/*` | **SELECT** | Allowed if `complaints.created_by = auth.uid()` | Allowed (All objects) |
+| | **INSERT** | Allowed if path segment 1 = `auth.uid()` AND `complaints.created_by = auth.uid()` | Allowed (All objects) |
 | | **UPDATE** | Forbidden | Forbidden |
-| | **DELETE** | Allowed if `complaints.created_by = auth.uid()` and uploader (`owner = auth.uid()`) | Allowed (All objects) |
+| | **DELETE** | Allowed if path segment 1 = `auth.uid()` AND `complaints.created_by = auth.uid()` | Allowed (All objects) |
 
 ---
 

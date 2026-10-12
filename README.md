@@ -231,3 +231,4 @@ For in-depth architectural and interview defense material, explore the `docs/` d
 - [Pedagogical Code Walkthrough](docs/WALKTHROUGH.md)
 - [Deployment Guide](docs/DEPLOY.md)
 - [Project Freeze Audit & Release Dossier](docs/PROJECT_FREEZE_AUDIT.md)
+- [Final Verification & Delivery Report](docs/FINAL_VERIFICATION_REPORT.md)

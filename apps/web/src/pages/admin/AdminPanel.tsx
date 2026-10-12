@@ -163,8 +163,12 @@ export const AdminPanel: React.FC = () => {
 
   // Fast direct worker assignment
   const quickAssignMutation = useMutation({
-    mutationFn: ({ complaintId, workerId }: { complaintId: string; workerId: string }) =>
-      api.complaints.assign(complaintId, { assigned_to: workerId, note: 'Quick-assigned by administrator' }),
+    mutationFn: ({ complaintId, workerId, version }: { complaintId: string; workerId: string; version: number }) =>
+      api.complaints.assign(complaintId, {
+        assigned_to: workerId,
+        note: 'Quick-assigned by administrator',
+        expected_version: version,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-complaints-feed'] });
       queryClient.invalidateQueries({ queryKey: ['complaints'] });
@@ -605,10 +609,10 @@ export const AdminPanel: React.FC = () => {
                               value={c.assigned_to?.id || ''}
                               onChange={(e) => {
                                 const val = e.target.value;
-                                if (val) quickAssignMutation.mutate({ complaintId: c.id, workerId: val });
+                                if (val) quickAssignMutation.mutate({ complaintId: c.id, workerId: val, version: c.version });
                               }}
-                              disabled={quickAssignMutation.isPending}
-                              className="w-full text-xs font-semibold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 outline-none cursor-pointer hover:border-brand-500 shadow-sm transition-colors"
+                              disabled={quickAssignMutation.isPending || c.status === 'closed' || c.status === 'rejected'}
+                              className="w-full text-xs font-semibold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 outline-none cursor-pointer hover:border-brand-500 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <option value="">
                                 ⚡ {c.assigned_to ? `Assigned: ${c.assigned_to.full_name} (Reassign ▾)` : 'Assign Specialist / Technician...'}

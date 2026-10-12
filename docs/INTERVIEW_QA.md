@@ -96,7 +96,7 @@ This comprehensive guide is prepared specifically for defending this enterprise 
 > Any row where `is_internal = true` evaluates to false for employees and is omitted from the result set.
 
 ### 17. How do you prevent users from tampering with their own roles?
-> **Answer:** The `profiles_update_own` policy only allows updating personal fields like `full_name` or `avatar_url`. Role modification policies are guarded by `current_user_role() = 'admin'`. Furthermore, the API registration endpoint verifies user metadata before provisioning.
+> **Answer:** Because PostgreSQL RLS is row-level rather than column-level, `profiles_update_own` (`USING (id = auth.uid())`) alone would permit a user to update any column on their own row. To close this privilege escalation vector in the database kernel, Migration 010 installs a `BEFORE UPDATE` trigger (`trg_protect_profile_sensitive_columns` executing `protect_profile_sensitive_columns()`) that raises SQLSTATE `42501` if a non-admin modifies `role`, `department_id`, `id`, or `created_at` (using null-safe `IS DISTINCT FROM` comparisons). Furthermore, `handle_new_user()` ignores user-supplied `raw_user_meta_data->>'role'` during public sign-up and unconditionally assigns `'employee'`.
 
 ### 18. What happens if RLS is enabled but no policy matches?
 > **Answer:** In PostgreSQL, enabling RLS activates a **default-deny** posture. If no policy matches the current user and operation, the operation fails or returns an empty result set.

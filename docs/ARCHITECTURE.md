@@ -103,10 +103,10 @@ ComplaintEase implements a multi-layer security perimeter:
 
 3. **Database Kernel Defense (RLS & Triggers):**
    - **Row Level Security:** Even if an API developer writes `SELECT * FROM complaints` with no WHERE clause, PostgreSQL evaluates RLS policies and hides rows outside the employee's ownership (admins see all complaints).
-   - **Role Escalation Protection:** The trigger `trg_protect_profile_role` raises SQLSTATE `42501` on any non-admin attempt to modify the `role` column on `profiles`.
+   - **Sensitive Profile Column Protection:** The trigger `trg_protect_profile_sensitive_columns` raises SQLSTATE `42501` on any non-admin attempt to modify `role`, `department_id`, `id`, or `created_at` on `profiles`.
    - **Autonomous Initial History:** The trigger `trg_complaint_initial_history` writes the baseline `status_history` record atomically on insert without requiring service-role privileges.
    - **Tamper-Resistant Triggers:** Direct SQL `UPDATE complaints SET status = ...` is trapped and rejected by a `BEFORE UPDATE` trigger (`trg_block_direct_status_update`). All status transitions must invoke `transition_complaint()`. Audit log mutation is similarly blocked with `P0006`.
-   - **Scoped Storage Policies:** RLS on `storage.objects` restricts read/write/delete access to bucket objects under `{complaint_id}/{filename}` to administrators and complaint authors.
+   - **Scoped Storage Policies:** RLS on `storage.objects` (bucket `attachments`) restricts read/write/delete access to objects under `<user_id>/<complaint_id>/<filename>` (and `<complaint_id>/<filename>`) to administrators and verified complaint authors.
 
 ---
 

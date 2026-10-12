@@ -74,30 +74,27 @@ pnpm -r test
 # ✓ src/test/api-endpoints.test.ts (4 tests)
 # Test Files: 9 passed (9), Tests: 143 passed (143)
 
-# 3. Live PostgreSQL Integration Script (16 tests across RLS, triggers, functions)
+# 3. Live Supabase SQL Editor Pre/Post-Migration Verification (Executed on project kdsjbdxtakgslextabpi)
+# Pre-Migration 010 Inspection Result:
+#   current_allowed_transitions_count = 24
+#   current_storage_policies_count    = 2
+#   sensitive_profile_trigger_exists  = 0
+#   assign_specialist_rpc_exists      = 0
+#
+# Post-Migration 010 Verification Result (After applying 010_security_workflow_hardening.sql):
+#   total_transitions                 = 23
+#   terminal_transitions              = 0
+#   anon_can_assign                   = false
+#   anon_can_transition               = false
+#   auth_can_call_profile_trigger     = false
+#   scoped_storage_policies           = 3
+
+# 4. Self-Contained PostgreSQL Integration Test Suite (16 tests across RLS, triggers, functions)
+# Command for manual execution in Supabase SQL Editor or via psql:
 psql -f supabase/tests/rls_and_concurrency_test.sql
-# Result:
-# PASS: Test 1 - Direct status update blocked by trigger (SQLSTATE P0005)
-# PASS: Test 2 - Invalid transition correctly rejected (SQLSTATE P0001)
-# PASS: Test 3 - Optimistic concurrency lock correctly caught conflict (SQLSTATE P0003)
-# PASS: Test 4 - Valid transition succeeded, version bumped to 2, status_history recorded
-# PASS: Test 5 - Employee reopening unresolved complaint blocked (SQLSTATE P0001)
-# PASS: Test 6 - Employee forbidden from progressing complaint (SQLSTATE 42501)
-# PASS: Test 7A - UPDATE on audit_logs blocked by tamper-proofing trigger (SQLSTATE P0006/55000)
-# PASS: Test 7B - DELETE on audit_logs blocked by tamper-proofing trigger (SQLSTATE P0006/55000)
-# PASS: Test 8 - Employee RLS logic excludes internal comments
-# PASS: Test 9 - Profile role update blocked for non-admin (SQLSTATE 42501)
-# PASS: Test 10 - Complaint insert automatically recorded initial status_history row via trigger
-# PASS: Test 11 - State machine table has all 23 canonical transitions and terminal states have 0 outgoing transitions
-# PASS: Test 12 - assign_specialist RPC executed atomically with assignment and transition
-# PASS: Test 13A - Non-admin profile department_id update blocked (SQLSTATE 42501)
-# PASS: Test 13B - Non-admin profile id update blocked (SQLSTATE 42501)
-# PASS: Test 13C - Non-admin profile created_at update blocked (SQLSTATE 42501)
-# PASS: Test 14 - Non-admin updating permitted profile fields (full_name, avatar_url) succeeds
-# PASS: Test 15A - Admin assignment to closed complaint blocked (SQLSTATE P0001)
-# PASS: Test 15B - Admin assignment to rejected complaint blocked (SQLSTATE P0001)
-# PASS: Test 16 - anon role has NO execute privilege on assign_specialist
-# === ALL RLS & INTEGRITY TESTS PASSED SUCCESSFULLY ===
+# Note: Vitest runs in-memory mocked Supabase clients; execute rls_and_concurrency_test.sql
+# directly against PostgreSQL/Supabase SQL Editor to run the 16 transactional database assertions.
+# (Status: Ready for manual execution; see docs/FINAL_VERIFICATION_REPORT.md for full verification status.)
 
 # 4. Production Build: Full monorepo bundling
 pnpm -r build

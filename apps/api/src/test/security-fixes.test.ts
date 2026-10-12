@@ -12,7 +12,7 @@ let mockUpdateError: any = null;
 
 const mockSupabase = {
   from: (table: string) => ({
-    select: (_fields?: string) => ({
+    select: (_fields?: string, _opts?: any) => ({
       eq: (_field: string, val: any) => ({
         single: () => {
           if (table === 'complaints') {
@@ -20,8 +20,27 @@ const mockSupabase = {
           }
           return { data: { id: val }, error: null };
         },
+        order: () => ({
+          range: () => ({
+            data: [{ id: 'log-1', actor: 'user-123', action: 'UPDATE', table_name: val, row_id: 'row-1', old_data: {}, new_data: {}, created_at: '2026-01-01T00:00:00Z' }],
+            count: 1,
+            error: null,
+          }),
+        }),
       }),
-      order: () => ({ data: [], error: null }),
+      in: (_field: string, _vals: any[]) => ({
+        data: [{ id: 'user-123', full_name: 'Test Admin', role: 'admin' }],
+        error: null,
+      }),
+      order: () => ({
+        data: [],
+        error: null,
+        range: () => ({
+          data: [{ id: 'log-1', actor: 'user-123', action: 'UPDATE', table_name: 'complaints', row_id: 'row-1', old_data: {}, new_data: {}, created_at: '2026-01-01T00:00:00Z' }],
+          count: 1,
+          error: null,
+        }),
+      }),
     }),
     insert: (_payload: any) => ({
       select: () => ({
@@ -252,8 +271,14 @@ describe('Security Fix Regression Tests', () => {
     });
   });
 
-  describe('Department and Category Access Control', () => {
-    it('allows an employee to read departments and categories', async () => {
+  describe('Department, Category, and Audit Log Access Control', () => {
+    it('allows an employee to read departments and categories, while allowing admin to read audit-logs with array data envelope', async () => {
+      const resAuditAdmin = await request(app).get('/api/v1/admin/audit-logs');
+      expect(resAuditAdmin.status).toBe(200);
+      expect(Array.isArray(resAuditAdmin.body.data)).toBe(true);
+      expect(resAuditAdmin.body.total_count).toBe(1);
+      expect(resAuditAdmin.body.data[0]).toHaveProperty('actor_profile');
+
       currentMockProfile = { id: 'user-123', full_name: 'Test Employee', role: 'employee' };
 
       const resDept = await request(app).get('/api/v1/admin/departments');
@@ -265,7 +290,7 @@ describe('Security Fix Regression Tests', () => {
       expect(resCat.body).toHaveProperty('data');
     });
 
-    it('forbids an employee from creating or modifying departments and categories', async () => {
+    it('forbids an employee from creating or modifying departments and categories or reading audit logs', async () => {
       currentMockProfile = { id: 'user-123', full_name: 'Test Employee', role: 'employee' };
 
       const resCreateDept = await request(app)
@@ -279,6 +304,10 @@ describe('Security Fix Regression Tests', () => {
         .send({ name: 'Unauthorized Cat' });
       expect(resCreateCat.status).toBe(403);
       expect(resCreateCat.body.error.code).toBe('FORBIDDEN');
+
+      const resAuditEmployee = await request(app).get('/api/v1/admin/audit-logs');
+      expect(resAuditEmployee.status).toBe(403);
+      expect(resAuditEmployee.body.error.code).toBe('FORBIDDEN');
     });
   });
 
