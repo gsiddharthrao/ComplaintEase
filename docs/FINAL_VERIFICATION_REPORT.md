@@ -10,7 +10,7 @@
   2. `bc29d1dff9aec0caf7e7807ecd8ebe1b943df9d7` — Documentation synchronization and sensitive profile column trigger expansions.
   3. `6e30bf8efd03ac8eb868e156d66631163ac5df71` — Null-safe `IS DISTINCT FROM` checks in PostgreSQL triggers/RPCs, `::jsonb` cast hardening, `..` filename validation in attachments, and self-contained fixtures in `supabase/tests/rls_and_concurrency_test.sql`.
   4. `417d02d3881e89683bcffd507ea052e929ac59e2` — Fix for Admin Command Center "Immutable Audit Trail" white-screen crash (`api.admin.getAuditLogs` envelope unwrapping and defensive array rendering in `AdminPanel.tsx`).
-  5. **Final Verification & Documentation Commit:** Recorded in Git history on `origin/fix/complaintease-security-workflow` (HEAD commit of this branch).
+  5. `295bc5bb9b46d304807eb1061ef99df033abb3a9` — Pass `expected_version` on specialist assignment in Web UI, disable assignment selector on terminal complaints, add `GET /api/v1/admin/audit-logs` regression test, and synchronize documentation (`docs/FINAL_VERIFICATION_REPORT.md`).
 
 ---
 
