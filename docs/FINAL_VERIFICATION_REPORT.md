@@ -12,7 +12,8 @@
   4. `417d02d3881e89683bcffd507ea052e929ac59e2` — Fix for Admin Command Center "Immutable Audit Trail" white-screen crash (`api.admin.getAuditLogs` envelope unwrapping and defensive array rendering in `AdminPanel.tsx`).
   5. `295bc5bb9b46d304807eb1061ef99df033abb3a9` — Pass `expected_version` on specialist assignment in Web UI, disable assignment selector on terminal complaints, add `GET /api/v1/admin/audit-logs` regression test, and synchronize documentation.
   6. `02131775b2cf51902eef3c3ebb17f054147b34a4` — Record commit SHA `295bc5b` in `FINAL_VERIFICATION_REPORT.md`.
-  7. **Gap Closure Commit (Migration 011, Mandatory Assignment `expected_version` & Target Assignee Role Enforcement):** `PENDING_COMMIT_SHA`
+  7. `83d87acc5418b7fb4373ee823367cfe0e5cef4d9` — Add Migration `011_specialist_assignment_hardening.sql` enforcing target assignee `role = 'employee'` (`P0001`) and mandatory `expected_version` (`P0003`) end-to-end across `@complaintease/shared`, Express API, React UI, Vitest suites (147 tests), and SQL integration tests (18 test sections).
+  8. **Branch `HEAD` Commit:** Companion documentation commit recording `83d87acc5418b7fb4373ee823367cfe0e5cef4d9` in this file (`git rev-parse HEAD` on `origin/fix/complaintease-security-workflow`).
 
 ---
 
