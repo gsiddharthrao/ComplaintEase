@@ -4,17 +4,20 @@
 --   psql -f supabase/tests/rls_and_concurrency_test.sql
 -- ============================================================
 
--- Ensure anon role exists if running on standalone postgres without Supabase roles
+-- Ensure anon and authenticated roles exist if running on standalone postgres
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
     CREATE ROLE anon NOLOGIN;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    CREATE ROLE authenticated NOLOGIN;
+  END IF;
 END $$;
 
 BEGIN;
 
--- Test Setup: Create mock auth users and profiles for testing
+-- Test Setup: Create self-contained fixtures (departments, categories, auth.users, profiles)
 DO $$
 DECLARE
   v_dept_it UUID := '11111111-1111-1111-1111-111111111111';
@@ -35,7 +38,30 @@ DECLARE
 BEGIN
   RAISE NOTICE '=== STARTING COMPLAINTEASE RLS & INTEGRITY TESTS ===';
 
-  -- 1. Ensure test profiles exist
+  -- 0. Ensure parent fixtures exist (departments, categories, auth.users)
+  INSERT INTO departments (id, name, description) VALUES
+    (v_dept_it, 'Test IT Dept (RLS Suite)', 'IT infrastructure, software, hardware support'),
+    (v_dept_hr, 'Test HR Dept (RLS Suite)', 'HR policies, payroll, employee relations')
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO categories (id, name, description, department_id) VALUES
+    (v_cat_id, 'RLS Test Category', 'Test category for SQL verification suite', NULL)
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO auth.users (id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+  VALUES
+    (v_emp_id, 'authenticated', 'authenticated', 'rls_test_emp1@example.com', '{"full_name":"Test Employee 1","role":"admin"}'::jsonb, now(), now()),
+    (v_emp2_id, 'authenticated', 'authenticated', 'rls_test_emp2@example.com', '{"full_name":"Test Employee 2"}'::jsonb, now(), now()),
+    (v_admin_id, 'authenticated', 'authenticated', 'rls_test_admin@example.com', '{"full_name":"Test Admin"}'::jsonb, now(), now())
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Verify handle_new_user() ignored "role":"admin" in raw_user_meta_data for v_emp_id
+  SELECT count(*) INTO v_count FROM profiles WHERE id = v_emp_id AND role = 'employee';
+  IF v_count != 1 THEN
+    RAISE EXCEPTION 'SETUP CHECK FAILED: handle_new_user() did not enforce employee role on signup metadata!';
+  END IF;
+
+  -- 1. Ensure test profiles have expected test roles and departments
   INSERT INTO profiles (id, full_name, role, department_id) VALUES
     (v_emp_id, 'Test Employee 1', 'employee', v_dept_it),
     (v_emp2_id, 'Test Employee 2', 'employee', v_dept_hr),
@@ -75,15 +101,24 @@ BEGIN
   END;
 
   -- -------------------------------------------------------------------------
-  -- TEST 3: Version Conflict / Optimistic Lock
+  -- TEST 3: Version Conflict / Optimistic Lock (including NULL version check)
   -- -------------------------------------------------------------------------
   BEGIN
     -- Expected version is 99, but actual is 1
     PERFORM transition_complaint(v_comp1_id, 'under_review', 'Conflict check', 99);
-    RAISE EXCEPTION 'TEST 3 FAILED: Version conflict should have thrown P0003!';
+    RAISE EXCEPTION 'TEST 3A FAILED: Version conflict should have thrown P0003!';
   EXCEPTION
     WHEN SQLSTATE 'P0003' THEN
-      RAISE NOTICE 'PASS: Test 3 - Optimistic concurrency lock correctly caught conflict (SQLSTATE P0003)';
+      NULL;
+  END;
+
+  BEGIN
+    -- NULL expected_version must also raise P0003 instead of bypassing 3-valued NULL check
+    PERFORM transition_complaint(v_comp1_id, 'under_review', 'Null version check', NULL);
+    RAISE EXCEPTION 'TEST 3B FAILED: NULL expected_version should have thrown P0003!';
+  EXCEPTION
+    WHEN SQLSTATE 'P0003' THEN
+      RAISE NOTICE 'PASS: Test 3 - Optimistic concurrency lock correctly caught conflict and NULL version (SQLSTATE P0003)';
   END;
 
   -- -------------------------------------------------------------------------
@@ -153,23 +188,30 @@ BEGIN
   END IF;
 
   -- -------------------------------------------------------------------------
-  -- TEST 8: Internal Comments Visibility & RLS Verification
+  -- TEST 8: Internal Comments Visibility & Cross-Employee RLS Verification
   -- -------------------------------------------------------------------------
   INSERT INTO comments (id, complaint_id, author_id, body, is_internal)
   VALUES (v_comment_id, v_comp1_id, v_admin_id, 'CONFIDENTIAL: Internal staff note regarding switch defect', true)
   ON CONFLICT (id) DO NOTHING;
 
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp_id::text, 'role', 'authenticated')::text, true);
-  IF EXISTS (
-    SELECT 1 FROM comments
-    WHERE id = v_comment_id
-      AND is_internal = false
-      AND complaint_id IN (SELECT id FROM complaints WHERE created_by = v_emp_id)
-  ) THEN
-    RAISE EXCEPTION 'TEST 8 FAILED: Internal comment matched employee visibility filter!';
-  ELSE
-    RAISE NOTICE 'PASS: Test 8 - Employee RLS logic excludes internal comments';
+  EXECUTE 'SET LOCAL ROLE authenticated';
+
+  -- Under actual authenticated RLS, employee 1 must see 0 rows for internal comment v_comment_id
+  SELECT count(*) INTO v_count FROM comments WHERE id = v_comment_id;
+  IF v_count != 0 THEN
+    EXECUTE 'RESET ROLE';
+    RAISE EXCEPTION 'TEST 8A FAILED: Internal comment was visible to employee under authenticated RLS!';
   END IF;
+
+  -- Under actual authenticated RLS, employee 1 must see 0 rows for employee 2 complaint v_comp2_id
+  SELECT count(*) INTO v_count FROM complaints WHERE id = v_comp2_id;
+  EXECUTE 'RESET ROLE';
+  IF v_count != 0 THEN
+    RAISE EXCEPTION 'TEST 8B FAILED: Another employee complaint was visible under authenticated RLS!';
+  END IF;
+
+  RAISE NOTICE 'PASS: Test 8 - Authenticated RLS hides internal comments and other employees complaints';
 
   -- -------------------------------------------------------------------------
   -- TEST 9: Non-Admin Profile Role Escalation Blocked by Trigger

@@ -127,6 +127,18 @@ describe('Security Fix Regression Tests', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('INVALID_STORAGE_PATH');
+
+      const resDotDot = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments')
+        .send({
+          file_name: 'hack.pdf',
+          file_size: 1024,
+          mime_type: 'application/pdf',
+          storage_path: 'user-123/complaint-abc/..secret.pdf',
+        });
+
+      expect(resDotDot.status).toBe(400);
+      expect(resDotDot.body.error.code).toBe('INVALID_STORAGE_PATH');
     });
 
     it('rejects confirmation when complaint is inaccessible or not found', async () => {

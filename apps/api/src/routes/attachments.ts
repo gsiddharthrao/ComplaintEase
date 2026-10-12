@@ -134,7 +134,13 @@ attachmentsRouter.post(
 
       const filenamePart = storage_path.slice(expectedPrefix.length);
       const safeFilenameRegex = /^[a-zA-Z0-9_\-\.]+\.[a-zA-Z0-9]+$/;
-      if (!filenamePart || filenamePart.includes('/') || filenamePart.includes('\\') || !safeFilenameRegex.test(filenamePart)) {
+      if (
+        !filenamePart ||
+        filenamePart.includes('..') ||
+        filenamePart.includes('/') ||
+        filenamePart.includes('\\') ||
+        !safeFilenameRegex.test(filenamePart)
+      ) {
         res.status(400).json({
           error: {
             code: 'INVALID_STORAGE_PATH',
