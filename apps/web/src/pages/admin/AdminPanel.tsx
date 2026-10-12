@@ -189,11 +189,17 @@ export const AdminPanel: React.FC = () => {
   });
 
   // 4. Audit logs query
-  const { data: auditLogs = [] } = useQuery({
+  const { data: auditLogsData, isLoading: auditLogsLoading } = useQuery({
     queryKey: ['admin-audit-logs'],
     queryFn: () => api.admin.getAuditLogs({ limit: 50 }),
     enabled: activeTab === 'audit',
   });
+
+  const auditLogs: any[] = Array.isArray(auditLogsData)
+    ? auditLogsData
+    : Array.isArray((auditLogsData as any)?.data)
+      ? (auditLogsData as any).data
+      : [];
 
   return (
     <div className="space-y-6">
@@ -910,7 +916,7 @@ export const AdminPanel: React.FC = () => {
           {activeTab === 'audit' && (
             <div className="space-y-4">
               <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-                🔒 <strong>Append-Only Security Guarantee:</strong> All rows below were recorded via database triggers. Database triggers prevent any UPDATE or DELETE operations on this table (SQLSTATE 55000).
+                🔒 <strong>Append-Only Security Guarantee:</strong> All rows below were recorded via database triggers. Database triggers prevent any UPDATE or DELETE operations on this table (SQLSTATE P0006).
               </div>
 
               <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl">
@@ -925,37 +931,53 @@ export const AdminPanel: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900 font-mono">
-                    {auditLogs.map((log: any) => (
-                      <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td className="px-4 py-3 whitespace-nowrap text-slate-400 dark:text-slate-500">
-                          {new Date(log.created_at).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                          })}
-                        </td>
-                        <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] ${
-                              log.action === 'INSERT'
-                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-                                : log.action === 'UPDATE'
-                                ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300'
-                                : 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
-                            }`}
-                          >
-                            {log.action}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-semibold">{log.table_name}</td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                          {log.actor_profile?.full_name || log.actor?.slice(0, 8) || 'System'}
-                        </td>
-                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400 max-w-xs truncate text-[11px]">
-                          {JSON.stringify(log.new_data || log.old_data || {})}
+                    {auditLogsLoading ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500 font-sans">
+                          Loading immutable audit trail...
                         </td>
                       </tr>
-                    ))}
+                    ) : auditLogs.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500 font-sans">
+                          No audit log entries recorded yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      auditLogs.map((log: any) => (
+                        <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="px-4 py-3 whitespace-nowrap text-slate-400 dark:text-slate-500">
+                            {new Date(log.created_at).toLocaleString([], {
+                              month: 'short',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                            })}
+                          </td>
+                          <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] ${
+                                log.action === 'INSERT'
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                                  : log.action === 'UPDATE'
+                                  ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300'
+                                  : 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
+                              }`}
+                            >
+                              {log.action}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-semibold">{log.table_name}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                            {log.actor_profile?.full_name || log.actor?.slice(0, 8) || 'System'}
+                          </td>
+                          <td className="px-4 py-3 text-slate-500 dark:text-slate-400 max-w-xs truncate text-[11px]">
+                            {JSON.stringify(log.new_data || log.old_data || {})}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

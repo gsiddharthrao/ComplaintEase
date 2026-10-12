@@ -220,7 +220,8 @@ export const api = {
       if (params.table_name) searchParams.append('table_name', params.table_name);
       if (params.offset !== undefined) searchParams.append('offset', String(params.offset));
       if (params.limit !== undefined) searchParams.append('limit', String(params.limit));
-      return await fetchWithAuth<any[]>(`/admin/audit-logs?${searchParams.toString()}`);
+      const res = await fetchWithAuth<any>(`/admin/audit-logs?${searchParams.toString()}`);
+      return Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
     },
   },
 };
