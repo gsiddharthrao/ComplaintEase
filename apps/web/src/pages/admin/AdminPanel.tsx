@@ -617,11 +617,13 @@ export const AdminPanel: React.FC = () => {
                               <option value="">
                                 ⚡ {c.assigned_to ? `Assigned: ${c.assigned_to.full_name} (Reassign ▾)` : 'Assign Specialist / Technician...'}
                               </option>
-                              {users.map((u) => (
-                                <option key={u.id} value={u.id}>
-                                  {u.full_name} ({u.role})
-                                </option>
-                              ))}
+                              {users
+                                .filter((u) => u.role === 'employee')
+                                .map((u) => (
+                                  <option key={u.id} value={u.id}>
+                                    {u.full_name} ({u.role})
+                                  </option>
+                                ))}
                             </select>
                           </div>
 

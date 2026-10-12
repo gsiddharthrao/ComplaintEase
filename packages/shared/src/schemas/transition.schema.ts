@@ -21,7 +21,7 @@ export type TransitionInput = z.infer<typeof transitionSchema>;
 export const assignSchema = z.object({
   assigned_to: z.string().uuid('Must be a valid user ID'),
   note: z.string().max(500).optional(),
-  expected_version: z.number().int().min(1).optional(),
+  expected_version: z.number().int().min(1),
 });
 
 export type AssignInput = z.infer<typeof assignSchema>;

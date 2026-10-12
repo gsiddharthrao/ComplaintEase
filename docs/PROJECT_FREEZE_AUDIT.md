@@ -60,19 +60,19 @@ The repository was verified using clean build and execution commands:
 pnpm -r typecheck
 # Result: 0 errors across packages/shared, apps/api, apps/web
 
-# 2. Automated Test Suites: 9 test files, 143 passing tests
+# 2. Automated Test Suites: 9 test files, 147 passing tests
 pnpm -r test
 # Result:
 # ✓ src/test/challenger-2-adversarial.test.ts (68 tests)
 # ✓ src/test/security-fixes.test.ts (17 tests)
-# ✓ src/test/validators.test.ts (15 tests)
+# ✓ src/test/validators.test.ts (16 tests)
+# ✓ src/test/concurrency.test.ts (11 tests)
 # ✓ src/test/workflow-and-env.test.ts (11 tests)
 # ✓ src/test/error-handler.test.ts (9 tests)
-# ✓ src/test/concurrency.test.ts (8 tests)
 # ✓ src/test/state-machine.test.ts (6 tests)
 # ✓ src/test/role-permissions.test.ts (5 tests)
 # ✓ src/test/api-endpoints.test.ts (4 tests)
-# Test Files: 9 passed (9), Tests: 143 passed (143)
+# Test Files: 9 passed (9), Tests: 147 passed (147)
 
 # 3. Live Supabase SQL Editor Pre/Post-Migration Verification (Executed on project kdsjbdxtakgslextabpi)
 # Pre-Migration 010 Inspection Result:
@@ -88,15 +88,19 @@ pnpm -r test
 #   anon_can_transition               = false
 #   auth_can_call_profile_trigger     = false
 #   scoped_storage_policies           = 3
+#
+# Migration 011 (011_specialist_assignment_hardening.sql):
+#   Prepared in repository (enforces assignee role = 'employee' and mandatory p_expected_version in assign_specialist);
+#   pending manual application in Supabase SQL Editor.
 
-# 4. Self-Contained PostgreSQL Integration Test Suite (16 tests across RLS, triggers, functions)
-# Command for manual execution in Supabase SQL Editor or via psql:
+# 4. Self-Contained PostgreSQL Integration Test Suite (18 test sections across RLS, triggers, functions)
+# Command for manual execution in Supabase SQL Editor or via psql (after applying Migration 011):
 psql -f supabase/tests/rls_and_concurrency_test.sql
 # Note: Vitest runs in-memory mocked Supabase clients; execute rls_and_concurrency_test.sql
-# directly against PostgreSQL/Supabase SQL Editor to run the 16 transactional database assertions.
+# directly against PostgreSQL/Supabase SQL Editor to run the 18 transactional database test sections.
 # (Status: Ready for manual execution; see docs/FINAL_VERIFICATION_REPORT.md for full verification status.)
 
-# 4. Production Build: Full monorepo bundling
+# 5. Production Build: Full monorepo bundling
 pnpm -r build
 # Result:
 # packages/shared: ESM + CJS + DTS built via tsup (0 errors)
@@ -177,7 +181,7 @@ flowchart TD
 - ❌ **Do NOT claim:** *"I built my own custom cryptography engine for authentication."*  
   ✅ **Say instead:** *"I leveraged Supabase Auth / GoTrue (which implements industry-standard bcrypt and signed RS256 JWTs) and focused my engineering on application authorization, RLS policies, and token-scoped database clients."*
 - ❌ **Do NOT claim:** *"The frontend has 100% Cypress/Playwright browser test coverage."*  
-  ✅ **Say instead:** *"We focused automated testing on the high-risk backend boundaries — role permissions, state machine transitions, BOLA/IDOR prevention, and Zod validators (143 Vitest tests across 9 suites + 16 live SQL tests) — and performed interactive exploratory testing on frontend workflows."*
+  ✅ **Say instead:** *"We focused automated testing on the high-risk backend boundaries — role permissions, state machine transitions, BOLA/IDOR prevention, and Zod validators (147 Vitest tests across 9 suites + 18 SQL test sections) — and performed interactive exploratory testing on frontend workflows."*
 
 ---
 

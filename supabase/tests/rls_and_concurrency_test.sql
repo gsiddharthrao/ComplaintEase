@@ -355,6 +355,59 @@ BEGIN
   END IF;
   RAISE NOTICE 'PASS: Test 16 - anon role has NO execute privilege on assign_specialist';
 
+  -- -------------------------------------------------------------------------
+  -- TEST 17: Specialist Assignee Role & Existence Validation (Migration 011 Gap A)
+  -- -------------------------------------------------------------------------
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
+
+  -- 17A: Assigning an administrator profile (v_admin_id) as specialist raises SQLSTATE P0001
+  BEGIN
+    PERFORM assign_specialist(v_comp3_id, v_admin_id, 'Attempting to assign admin as specialist', 2);
+    RAISE EXCEPTION 'TEST 17A FAILED: Assigning an admin profile as specialist should raise P0001!';
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      RAISE NOTICE 'PASS: Test 17A - Assigning administrator profile as specialist blocked (SQLSTATE P0001)';
+  END;
+
+  -- 17B: Assigning a nonexistent profile raises SQLSTATE P0002
+  BEGIN
+    PERFORM assign_specialist(v_comp3_id, '99999999-0000-0000-0000-000000000000'::UUID, 'Attempting to assign nonexistent user', 2);
+    RAISE EXCEPTION 'TEST 17B FAILED: Assigning nonexistent profile should raise P0002!';
+  EXCEPTION
+    WHEN SQLSTATE 'P0002' THEN
+      RAISE NOTICE 'PASS: Test 17B - Assigning nonexistent profile blocked (SQLSTATE P0002)';
+  END;
+
+  -- -------------------------------------------------------------------------
+  -- TEST 18: Mandatory expected_version on assign_specialist (Migration 011 Gap B)
+  -- -------------------------------------------------------------------------
+  -- 18A: Omitting p_expected_version raises SQLSTATE P0003
+  BEGIN
+    PERFORM assign_specialist(v_comp3_id, v_emp_id, 'Omitted expected_version');
+    RAISE EXCEPTION 'TEST 18A FAILED: Omitting expected_version on assign_specialist should raise P0003!';
+  EXCEPTION
+    WHEN SQLSTATE 'P0003' THEN
+      RAISE NOTICE 'PASS: Test 18A - Omitted expected_version on assign_specialist blocked (SQLSTATE P0003)';
+  END;
+
+  -- 18B: Passing NULL p_expected_version raises SQLSTATE P0003
+  BEGIN
+    PERFORM assign_specialist(v_comp3_id, v_emp_id, 'Null expected_version', NULL);
+    RAISE EXCEPTION 'TEST 18B FAILED: NULL expected_version on assign_specialist should raise P0003!';
+  EXCEPTION
+    WHEN SQLSTATE 'P0003' THEN
+      RAISE NOTICE 'PASS: Test 18B - NULL expected_version on assign_specialist blocked (SQLSTATE P0003)';
+  END;
+
+  -- 18C: Passing stale p_expected_version (version is currently 2 after Test 12, passing 1) raises SQLSTATE P0003
+  BEGIN
+    PERFORM assign_specialist(v_comp3_id, v_emp_id, 'Stale expected_version', 1);
+    RAISE EXCEPTION 'TEST 18C FAILED: Stale expected_version on assign_specialist should raise P0003!';
+  EXCEPTION
+    WHEN SQLSTATE 'P0003' THEN
+      RAISE NOTICE 'PASS: Test 18C - Stale expected_version on assign_specialist blocked (SQLSTATE P0003)';
+  END;
+
   RAISE NOTICE '=== ALL RLS & INTEGRITY TESTS PASSED SUCCESSFULLY ===';
 END $$;
 

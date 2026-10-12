@@ -90,6 +90,12 @@ flowchart LR
   - **Audit Log Tamper-Proofing Error Alignment:** Aligns `block_audit_log_modification` trigger to raise SQLSTATE `P0006`.
   - **SECURITY DEFINER Privilege Lockdown:** Revokes `EXECUTE` on all stored functions from `PUBLIC` and `anon`. Grants `EXECUTE` strictly to `authenticated` for public RPCs (`current_user_role`, `current_user_dept`, `transition_complaint`, `assign_specialist`), and completely revokes direct invocation permissions on trigger functions (`handle_new_user`, `protect_profile_sensitive_columns`, etc.).
 
+### `011_specialist_assignment_hardening.sql`
+- **Purpose:** Closes the remaining specialist assignment role and optimistic concurrency gaps on top of Migration 010.
+- **Key Concepts:**
+  - **Assignee Role Validation (Gap A):** Verifies `v_target_profile.role = 'employee'` inside `public.assign_specialist()`, rejecting attempts to assign `admin` or unauthorized profiles at the PostgreSQL boundary with SQLSTATE `P0001` (HTTP 400) and nonexistent profiles with `P0002` (HTTP 404).
+  - **Mandatory `p_expected_version` (Gap B):** Rejects `NULL` or `< 1` values for `p_expected_version` inside `public.assign_specialist()` with SQLSTATE `P0003` (HTTP 409) instead of skipping version verification, aligning database concurrency enforcement with `assignSchema` in `@complaintease/shared`.
+
 ---
 
 ## 2. Shared Types & Schemas (`/packages/shared`)

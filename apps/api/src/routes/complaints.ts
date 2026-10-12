@@ -318,7 +318,7 @@ complaintsRouter.post(
         p_complaint_id: id,
         p_assigned_to: assigned_to,
         p_note: note || null,
-        p_expected_version: expected_version ?? null,
+        p_expected_version: expected_version,
       });
 
       if (error) {

@@ -115,8 +115,8 @@ SELECT assign_specialist(
 ```
 
 ### Guarantees:
-1. **Administrative Authorization:** Validates `current_user_role() = 'admin'`, raising `P0004` (403) for non-administrators, and verifies the target specialist profile exists (`P0002` / 404 if missing).
-2. **Pessimistic Row Lock & Optimistic Versioning:** Acquires `SELECT ... FOR UPDATE` on the complaint and, when `p_expected_version IS NOT NULL`, verifies `version = p_expected_version` (raising `P0003` on conflict).
+1. **Administrative Caller & Target Role Authorization:** Validates `current_user_role() = 'admin'`, raising `42501` (403) for non-administrators, verifies the target specialist profile exists (`P0002` / 404 if missing), and enforces at the database boundary that `v_target_profile.role = 'employee'` (raising `P0001` / 400 if an administrator or unauthorized role is targeted).
+2. **Pessimistic Row Lock & Mandatory Optimistic Versioning:** Acquires `SELECT ... FOR UPDATE` on the complaint and requires a non-null `p_expected_version >= 1` matching `complaint.version` (raising `P0003` / 409 on missing, `NULL`, or stale versions).
 3. **Terminal State Guard:** Blocks assignment on terminal complaints (`closed` or `rejected`), raising SQLSTATE `P0001` (HTTP 400 `INVALID_TRANSITION`) to prevent assigning specialists to finalized tickets.
 4. **Atomic State Synchronization:** If the complaint is currently in `submitted` or `under_review`, its status is automatically advanced to `assigned`, inserting a `status_history` record and incrementing `version` (while preserving current status when reassigning a specialist on a ticket already in `assigned`, `in_progress`, `reopened`, or `resolved`).
 5. **Single Active Specialist Constraint:** Deactivates any prior active assignments for this complaint (`UPDATE assignments SET is_active = false`) and creates the new active assignment row in a single atomic transaction.

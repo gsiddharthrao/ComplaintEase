@@ -92,18 +92,34 @@ describe('Validator Unit Tests', () => {
   });
 
   describe('assignSchema', () => {
-    it('accepts valid assignment', () => {
+    it('accepts valid assignment with mandatory expected_version', () => {
       const valid = {
         assigned_to: '33333333-3333-3333-3333-333333333333',
         note: 'High priority hardware ticket',
+        expected_version: 2,
       };
       const result = assignSchema.safeParse(valid);
       expect(result.success).toBe(true);
     });
 
+    it('rejects missing or null expected_version on assignment', () => {
+      const missingVersion = {
+        assigned_to: '33333333-3333-3333-3333-333333333333',
+        note: 'Missing version',
+      };
+      expect(assignSchema.safeParse(missingVersion).success).toBe(false);
+
+      const nullVersion = {
+        assigned_to: '33333333-3333-3333-3333-333333333333',
+        expected_version: null,
+      };
+      expect(assignSchema.safeParse(nullVersion).success).toBe(false);
+    });
+
     it('rejects non-uuid assigned_to', () => {
       const invalid = {
         assigned_to: 'invalid-id',
+        expected_version: 1,
       };
       const result = assignSchema.safeParse(invalid);
       expect(result.success).toBe(false);

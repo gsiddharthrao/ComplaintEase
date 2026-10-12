@@ -66,16 +66,48 @@ const mockSupabase = {
         return { data: null, error: terminalErr };
       }
 
-      if (
-        args.p_expected_version !== undefined &&
-        args.p_expected_version !== null &&
-        args.p_expected_version !== mockComplaintData.version
-      ) {
+      if (args.p_expected_version === undefined || args.p_expected_version === null || args.p_expected_version < 1) {
+        const missingVerErr = Object.assign(
+          new Error('expected_version is required for specialist assignment'),
+          { code: 'P0003' },
+        );
+        return { data: null, error: missingVerErr };
+      }
+
+      if (args.p_expected_version !== mockComplaintData.version) {
         const conflictErr = Object.assign(
           new Error(`Conflict: expected version ${args.p_expected_version}, but current version is ${mockComplaintData.version}`),
           { code: 'P0003' },
         );
         return { data: null, error: conflictErr };
+      }
+
+      const mockProfiles: Record<string, { id: string; role: 'employee' | 'admin' }> = {
+        '11111111-2222-3333-4444-555555555555': {
+          id: '11111111-2222-3333-4444-555555555555',
+          role: 'employee',
+        },
+        'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee': {
+          id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+          role: 'admin',
+        },
+      };
+
+      const targetProfile = mockProfiles[args.p_assigned_to];
+      if (!targetProfile) {
+        const notFoundErr = Object.assign(
+          new Error(`Target user ${args.p_assigned_to} not found`),
+          { code: 'P0002' },
+        );
+        return { data: null, error: notFoundErr };
+      }
+
+      if (targetProfile.role !== 'employee') {
+        const invalidRoleErr = Object.assign(
+          new Error(`Target assignee ${args.p_assigned_to} must have role employee (found ${targetProfile.role})`),
+          { code: 'P0001' },
+        );
+        return { data: null, error: invalidRoleErr };
       }
 
       return {
@@ -175,7 +207,7 @@ describe('Optimistic Concurrency & Atomic RPC Integration Tests (R4.1, R3.2, R2.
   });
 
   describe('Atomic Specialist Assignment (assign_specialist RPC)', () => {
-    it('executes atomic assign_specialist RPC with complaint ID and assignee', async () => {
+    it('executes atomic assign_specialist RPC for a permitted employee with matching expected_version', async () => {
       const res = await request(app)
         .post('/api/v1/complaints/comp-100/assign')
         .send({
@@ -195,6 +227,58 @@ describe('Optimistic Concurrency & Atomic RPC Integration Tests (R4.1, R3.2, R2.
       expect(mockRpcCalls[0].args.p_expected_version).toBe(6);
     });
 
+    it('rejects assigning an administrator profile as a specialist with HTTP 400 (P0001)', async () => {
+      const res = await request(app)
+        .post('/api/v1/complaints/comp-100/assign')
+        .send({
+          assigned_to: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+          note: 'Attempting to assign admin as specialist',
+          expected_version: 6,
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_TRANSITION');
+      expect(res.body.error.message).toContain('must have role employee (found admin)');
+    });
+
+    it('rejects assigning a nonexistent target profile with HTTP 404 (P0002)', async () => {
+      const res = await request(app)
+        .post('/api/v1/complaints/comp-100/assign')
+        .send({
+          assigned_to: '99999999-9999-9999-9999-999999999999',
+          note: 'Attempting to assign nonexistent user',
+          expected_version: 6,
+        });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+
+    it('rejects missing or null expected_version on specialist assignment with HTTP 400 VALIDATION_ERROR', async () => {
+      const resMissing = await request(app)
+        .post('/api/v1/complaints/comp-100/assign')
+        .send({
+          assigned_to: '11111111-2222-3333-4444-555555555555',
+          note: 'Missing expected_version',
+        });
+
+      expect(resMissing.status).toBe(400);
+      expect(resMissing.body.error.code).toBe('VALIDATION_ERROR');
+      expect(mockRpcCalls.length).toBe(0);
+
+      const resNull = await request(app)
+        .post('/api/v1/complaints/comp-100/assign')
+        .send({
+          assigned_to: '11111111-2222-3333-4444-555555555555',
+          note: 'Null expected_version',
+          expected_version: null,
+        });
+
+      expect(resNull.status).toBe(400);
+      expect(resNull.body.error.code).toBe('VALIDATION_ERROR');
+      expect(mockRpcCalls.length).toBe(0);
+    });
+
     it('blocks non-admin users from assigning specialists', async () => {
       currentMockProfile = { id: 'emp-123', full_name: 'Employee', role: 'employee' as any };
 
@@ -202,6 +286,7 @@ describe('Optimistic Concurrency & Atomic RPC Integration Tests (R4.1, R3.2, R2.
         .post('/api/v1/complaints/comp-100/assign')
         .send({
           assigned_to: '11111111-2222-3333-4444-555555555555',
+          expected_version: 6,
         });
 
       expect(res.status).toBe(403);

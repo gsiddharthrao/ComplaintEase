@@ -79,7 +79,7 @@ export const ComplaintDetail: React.FC = () => {
   });
 
   const assignMutation = useMutation({
-    mutationFn: (data: { assigned_to: string; note: string; expected_version?: number }) =>
+    mutationFn: (data: { assigned_to: string; note: string; expected_version: number }) =>
       api.complaints.assign(id!, data),
     onSuccess: () => {
       setAssigneeId('');
@@ -349,11 +349,13 @@ export const ComplaintDetail: React.FC = () => {
                 className="w-full text-xs font-semibold text-slate-800 dark:text-slate-100 bg-transparent outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="" className="dark:bg-slate-800">⚡ Assign Worker / Field Specialist...</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id} className="dark:bg-slate-800">
-                    {u.full_name} ({u.role})
-                  </option>
-                ))}
+                {users
+                  .filter((u) => u.role === 'employee')
+                  .map((u) => (
+                    <option key={u.id} value={u.id} className="dark:bg-slate-800">
+                      {u.full_name} ({u.role})
+                    </option>
+                  ))}
               </select>
             </div>
 

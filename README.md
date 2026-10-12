@@ -98,7 +98,7 @@ complaintease/
 │       │   ├── middleware/     # requireAuth, requireRole, validate, errorHandler, rateLimit
 │       │   ├── routes/         # auth, complaints, comments, attachments, notifications, admin, health
 │       │   ├── scripts/        # seed-users.ts
-│       │   ├── test/           # 143 Vitest tests across 9 test suites (adversarial, concurrency, error-handler, etc.)
+│       │   ├── test/           # 147 Vitest tests across 9 test suites (adversarial, concurrency, error-handler, etc.)
 │       │   └── utils/          # supabase.ts (user RLS client & admin client), logger.ts (Pino)
 │       └── Dockerfile          # Multi-stage production container build
 ├── packages/
@@ -106,7 +106,7 @@ complaintease/
 │       ├── src/types/          # enums.ts, complaint.ts, user.ts, department.ts, category.ts
 │       └── src/schemas/        # complaint.schema.ts, auth.schema.ts, transition.schema.ts
 ├── supabase/
-│   ├── migrations/             # 10 immutable SQL migrations (001 to 010)
+│   ├── migrations/             # 11 immutable SQL migrations (001 to 011)
 │   ├── seed.sql                # Relational seed data and 10,000-row synthetic benchmark generator
 │   └── tests/                  # pgTAP / SQL verification scripts
 └── docs/                       # Comprehensive architecture, security, and interview documentation
@@ -147,7 +147,7 @@ cp apps/api/.env.example apps/api/.env
 # Edit both files with your Supabase Project URL and API keys
 
 # 4. Apply database migrations to Supabase
-# Paste supabase/migrations/001_extensions_and_enums.sql through 010_security_workflow_hardening.sql in the Supabase SQL Editor
+# Paste supabase/migrations/001_extensions_and_enums.sql through 011_specialist_assignment_hardening.sql in the Supabase SQL Editor
 # Then run supabase/seed.sql to populate departments and categories
 
 # 5. Provision the initial Administrator account
@@ -172,20 +172,20 @@ The codebase is strictly typed and verified:
 pnpm -r typecheck
 # Result: 0 errors, 0 warnings
 
-# Automated test execution (143 passing tests across 9 suites)
+# Automated test execution (147 passing tests across 9 suites)
 pnpm -r test
 # Result:
 # ✓ src/test/challenger-2-adversarial.test.ts (68 tests)
 # ✓ src/test/security-fixes.test.ts (17 tests)
-# ✓ src/test/validators.test.ts (15 tests)
+# ✓ src/test/validators.test.ts (16 tests)
+# ✓ src/test/concurrency.test.ts (11 tests)
 # ✓ src/test/workflow-and-env.test.ts (11 tests)
 # ✓ src/test/error-handler.test.ts (9 tests)
-# ✓ src/test/concurrency.test.ts (8 tests)
 # ✓ src/test/state-machine.test.ts (6 tests)
 # ✓ src/test/role-permissions.test.ts (5 tests)
 # ✓ src/test/api-endpoints.test.ts (4 tests)
 # Test Files  9 passed (9)
-#      Tests  143 passed (143)
+#      Tests  147 passed (147)
 
 # Production bundling
 pnpm -r build
@@ -193,8 +193,8 @@ pnpm -r build
 ```
 
 > **Testing Architecture Note — In-Memory Vitest vs. Live PostgreSQL SQL Integration:**
-> - **Vitest / Supertest Suites (143 Tests across 9 Suites):** Execute in-memory via mocked Supabase clients for fast deterministic verification of Express route guards, Zod validators, error handling status code mappings (`P0001`–`P0006`, `42501`), OCC conflict handling, and controller logic.
-> - **Live PostgreSQL Integration Script (`supabase/tests/rls_and_concurrency_test.sql`, 16 Tests):** Standalone transactional integration test suite executing on a live PostgreSQL/Supabase database engine (`psql -f supabase/tests/rls_and_concurrency_test.sql`). It asserts genuine database-level constraints: Row Level Security (RLS) policies, internal comment visibility filters, status locking triggers (`trg_block_direct_status_update`), sensitive profile column immutability (`trg_protect_profile_sensitive_columns`), atomic history insertion (`trg_complaint_initial_history`), optimistic concurrency conflicts, stored procedure execution (`transition_complaint()`, `assign_specialist()`), and role privilege revocation (`REVOKE ... FROM anon`).
+> - **Vitest / Supertest Suites (147 Tests across 9 Suites):** Execute in-memory via mocked Supabase clients for fast deterministic verification of Express route guards, Zod validators, error handling status code mappings (`P0001`–`P0006`, `42501`), OCC conflict handling, and controller logic.
+> - **Live PostgreSQL Integration Script (`supabase/tests/rls_and_concurrency_test.sql`, 18 Test Sections):** Standalone transactional integration test suite executing on a live PostgreSQL/Supabase database engine (`psql -f supabase/tests/rls_and_concurrency_test.sql`). It asserts genuine database-level constraints: Row Level Security (RLS) policies, internal comment visibility filters, status locking triggers (`trg_block_direct_status_update`), sensitive profile column immutability (`trg_protect_profile_sensitive_columns`), atomic history insertion (`trg_complaint_initial_history`), optimistic concurrency conflicts, stored procedure execution (`transition_complaint()`, `assign_specialist()`), target specialist role validation, mandatory `expected_version` enforcement, and role privilege revocation (`REVOKE ... FROM anon`).
 
 ---
 
