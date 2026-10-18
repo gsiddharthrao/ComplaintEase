@@ -71,6 +71,88 @@ describe('Workflow, Security Invariants & Environment Hardening (R1-R7)', () => 
     });
   });
 
+  describe('Production Database Safeguard (Non-Production Protection)', () => {
+    it('rejects development connecting to production Supabase without explicit opt-in', () => {
+      const devPointingToProd = {
+        NODE_ENV: 'development',
+        SUPABASE_URL: 'https://kdsjbdxtakgslextabpi.supabase.co',
+        SUPABASE_ANON_KEY: 'ey-dev-anon-key',
+        SUPABASE_SERVICE_ROLE_KEY: 'ey-dev-service-role-key',
+      };
+
+      expect(() => validateEnv(devPointingToProd)).toThrow(
+        /Refusing to connect non-production environment \(development\) to production Supabase project \(kdsjbdxtakgslextabpi\)/,
+      );
+    });
+
+    it('rejects test environment connecting to production Supabase without explicit opt-in', () => {
+      const testPointingToProd = {
+        NODE_ENV: 'test',
+        SUPABASE_URL: 'https://kdsjbdxtakgslextabpi.supabase.co',
+        SUPABASE_ANON_KEY: 'ey-test-anon-key',
+        SUPABASE_SERVICE_ROLE_KEY: 'ey-test-service-role-key',
+      };
+
+      expect(() => validateEnv(testPointingToProd)).toThrow(
+        /Refusing to connect non-production environment \(test\) to production Supabase project \(kdsjbdxtakgslextabpi\)/,
+      );
+    });
+
+    it('permits development connecting to production with explicit documented opt-in (ALLOW_PROD_DB_IN_DEV=true)', () => {
+      const devWithOptIn = {
+        NODE_ENV: 'development',
+        SUPABASE_URL: 'https://kdsjbdxtakgslextabpi.supabase.co',
+        SUPABASE_ANON_KEY: 'ey-dev-anon-key',
+        SUPABASE_SERVICE_ROLE_KEY: 'ey-dev-service-role-key',
+        ALLOW_PROD_DB_IN_DEV: 'true',
+      };
+
+      const result = validateEnv(devWithOptIn);
+      expect(result.success).toBe(true);
+      expect(result.data?.SUPABASE_URL).toContain('kdsjbdxtakgslextabpi');
+    });
+
+    it('permits normal development and mocked test configuration', () => {
+      const normalDev = {
+        NODE_ENV: 'development',
+        SUPABASE_URL: 'http://127.0.0.1:54321',
+        SUPABASE_ANON_KEY: 'local-anon-key',
+        SUPABASE_SERVICE_ROLE_KEY: 'local-service-role-key',
+      };
+      const devResult = validateEnv(normalDev);
+      expect(devResult.success).toBe(true);
+
+      const mockedConfig = {
+        NODE_ENV: 'test',
+        SUPABASE_URL: 'https://placeholder.supabase.co',
+        SUPABASE_ANON_KEY: 'mock-anon-key',
+        SUPABASE_SERVICE_ROLE_KEY: 'mock-service-role-key',
+      };
+      const mockResult = validateEnv(mockedConfig);
+      expect(mockResult.success).toBe(true);
+    });
+
+    it('rejects production configuration with missing or placeholder credentials', () => {
+      const prodMissing = {
+        NODE_ENV: 'production',
+        SUPABASE_URL: 'https://example.supabase.co',
+      };
+      expect(() => validateEnv(prodMissing)).toThrow(
+        /Production environment cannot start with placeholder Supabase credentials/,
+      );
+
+      const prodPlaceholderKey = {
+        NODE_ENV: 'production',
+        SUPABASE_URL: 'https://real-prod-ref.supabase.co',
+        SUPABASE_ANON_KEY: 'placeholder-anon-key',
+        SUPABASE_SERVICE_ROLE_KEY: 'real-service-key',
+      };
+      expect(() => validateEnv(prodPlaceholderKey)).toThrow(
+        /Production environment cannot start with placeholder Supabase credentials/,
+      );
+    });
+  });
+
   describe('Rate Limiter & Reverse Proxy Trust (Scenario 12)', () => {
     it('has trust proxy enabled to correctly resolve client IP behind reverse proxies', () => {
       expect(app.get('trust proxy')).toBe(1);

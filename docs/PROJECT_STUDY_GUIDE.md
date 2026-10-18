@@ -207,9 +207,9 @@ Suppose Specialist A and Specialist B open a ticket at `version: 2`. Specialist 
 # CHAPTER 12 — TESTING METHODOLOGY & LIMITATIONS
 
 ComplaintEase employs a tiered testing strategy:
-1. **Mocked API & Unit Tests (151 passing tests across 9 files):** Executed with Vitest and Supertest. Validates middleware guards, Zod schemas, route handlers, error translators, and rate limiting in memory.
-2. **Database SQL Integration Suite (28 test blocks):** Contained in `supabase/tests/rls_and_concurrency_test.sql`. Executed inside the PostgreSQL database engine to test RLS policies, OCC conflict handling, triggers, and immutability.
-3. **Browser End-to-End Testing (Manual / Staging):** Real user workflows in the browser. *Status: Distinct from mocked tests. Live mutative writes against production are protected.*
+1. **Mocked API & Unit Tests (163 passing tests across 9 files):** Executed with Vitest and Supertest. Validates middleware guards, Zod schemas, route handlers, error translators, fail-closed storage object verification, production database safeguards, and rate limiting in memory.
+2. **Database SQL Integration Suite (28 test blocks with individual assertions):** Contained in `supabase/tests/rls_and_concurrency_test.sql`. Executed inside the PostgreSQL database engine to test RLS policies, OCC conflict handling, triggers, and immutability.
+3. **Browser End-to-End Testing (Manual / Staging):** Real user workflows in the browser. *Status: Distinct from mocked tests. Live mutative writes against production are protected and NOT TESTED against production.*
 
 ---
 
@@ -285,13 +285,13 @@ ComplaintEase employs a tiered testing strategy:
 **Answer:** `node_modules/.modules.yaml` contained metadata from a different pnpm virtual store layout (`v11`), causing pnpm 9.15.9 to pause and prompt on stdin: `? The modules directory will be removed and reinstalled...`. In headless subshells, this blocked on stdin. Setting `confirm-modules-purge=false` in `.npmrc` eliminated the interactive prompt.
 
 ### Q24: What is the difference between unit tests and the SQL regression test suite?
-**Answer:** Unit tests (151 Vitest tests) verify Express route logic, middleware, and Zod schemas in-memory with mocked database calls. The SQL test suite (`rls_and_concurrency_test.sql`, 28 test blocks) runs inside the real PostgreSQL engine, verifying actual RLS policy behavior, triggers, and row-level locking.
+**Answer:** Unit tests (163 Vitest tests across 9 suites) verify Express route logic, middleware, and Zod schemas in-memory with mocked database calls. The SQL test suite (`rls_and_concurrency_test.sql`, 28 test blocks with individual sub-assertions) runs inside the real PostgreSQL engine, verifying actual RLS policy behavior, triggers, and row-level locking.
 
 ### Q25: How does the health check endpoint operate?
 **Answer:** Mounted at `/health` and `/api/v1/health`. It performs a lightweight `head: true` count query on `departments` with a 3-second timeout. If the database is responsive, it returns HTTP 200 with latency; if unreachable, it returns HTTP 503.
 
 ### Q26: What is the production database safeguard in `env.ts`?
-**Answer:** If `SUPABASE_URL` points to the production Supabase host while running in non-production mode, the API checks for `ALLOW_PROD_DB_IN_DEV=true`. If not set, it emits a protective safeguard banner to prevent accidental test mutations against production.
+**Answer:** If `SUPABASE_URL` points to the production Supabase host while running in non-production mode, the API checks for `ALLOW_PROD_DB_IN_DEV=true`. If not set, it throws an error immediately on startup to fail-fast and prevent accidental test or dev connections against production.
 
 ### Q27: How does the seed script prevent accidental credential overwrites?
 **Answer:** `seed-users.ts` paginates through all users to find existing accounts. If an admin account exists, it preserves the existing password by default unless explicitly invoked with `RESET_EXISTING_PASSWORD=true`. It also refuses to run against production without `ALLOW_PROD_SEED=true`.
@@ -330,7 +330,7 @@ ComplaintEase employs a tiered testing strategy:
 >
 > We also implemented an append-only audit trail protected by immutability triggers, two-stage private signed attachment storage, and a shared TypeScript package ensuring complete type safety across client and server.
 >
-> The codebase is fully validated with 151 automated tests, clean TypeScript compilation, and verified PostgreSQL migration scripts. Thank you, and I look forward to your questions!"
+> The codebase is fully validated with 163 automated tests, 28 database SQL test blocks, clean TypeScript compilation, and verified PostgreSQL migration scripts. Thank you, and I look forward to your questions!"
 
 ---
 

@@ -176,59 +176,154 @@ attachmentsRouter.post(
         return;
       }
 
-      // 4. Server-side validation: inspect stored object metadata where supported
-      let verifiedSize = file_size;
-      try {
-        if (typeof supabase.storage?.from === 'function') {
-          const storageBucket = supabase.storage.from('attachments');
-          if (typeof storageBucket.list === 'function') {
-            const folder = `${req.user!.id}/${id}`;
-            const { data: fileList, error: listErr } = await storageBucket.list(folder, {
-              search: filenamePart,
-            });
-
-            if (!listErr && Array.isArray(fileList)) {
-              const matchedObj = fileList.find((f: any) => f.name === filenamePart);
-              if (matchedObj) {
-                if (matchedObj.metadata?.size) {
-                  const actualBytes = Number(matchedObj.metadata.size);
-                  if (actualBytes > 10485760) {
-                    res.status(400).json({
-                      error: {
-                        code: 'FILE_TOO_LARGE',
-                        message: 'Uploaded file in storage exceeds the 10MB maximum limit',
-                        requestId: req.id,
-                      },
-                    });
-                    return;
-                  }
-                  if (Math.abs(actualBytes - file_size) > 1024) {
-                    res.status(400).json({
-                      error: {
-                        code: 'METADATA_MISMATCH',
-                        message: `Reported file size (${file_size} B) deviates significantly from actual stored object size (${actualBytes} B)`,
-                        requestId: req.id,
-                      },
-                    });
-                    return;
-                  }
-                  verifiedSize = actualBytes;
-                }
-              }
-            }
-          }
-        }
-      } catch {
-        // Fallback gracefully if storage metadata inspect is unmocked or unsupported
+      // 4. Server-side storage object verification (fail-closed)
+      // Confirms that the client has actually uploaded the file into Supabase Storage
+      // at the exact expected path before creating any database record.
+      if (typeof supabase.storage?.from !== 'function') {
+        res.status(502).json({
+          error: {
+            code: 'STORAGE_UNAVAILABLE',
+            message: 'Storage service is unavailable for object verification',
+            requestId: req.id,
+          },
+        });
+        return;
       }
 
+      const storageBucket = supabase.storage.from('attachments');
+      if (typeof storageBucket.list !== 'function') {
+        res.status(502).json({
+          error: {
+            code: 'STORAGE_UNAVAILABLE',
+            message: 'Storage listing operation is unavailable',
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
+      const folder = `${req.user!.id}/${id}`;
+      let fileList: any[];
+      try {
+        const { data, error: listErr } = await storageBucket.list(folder, {
+          search: filenamePart,
+        });
+
+        if (listErr) {
+          res.status(502).json({
+            error: {
+              code: 'STORAGE_VERIFICATION_ERROR',
+              message: `Failed to verify storage object: ${listErr.message || 'Storage listing error'}`,
+              requestId: req.id,
+            },
+          });
+          return;
+        }
+
+        if (!Array.isArray(data)) {
+          res.status(502).json({
+            error: {
+              code: 'STORAGE_VERIFICATION_ERROR',
+              message: 'Unexpected storage response format during object verification',
+              requestId: req.id,
+            },
+          });
+          return;
+        }
+
+        fileList = data;
+      } catch (err: any) {
+        res.status(502).json({
+          error: {
+            code: 'STORAGE_VERIFICATION_ERROR',
+            message: `Storage object verification failed: ${err?.message || 'Unknown storage error'}`,
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
+      // Check object existence at the exact path
+      const matchedObj = fileList.find((f: any) => f.name === filenamePart);
+      if (!matchedObj) {
+        res.status(400).json({
+          error: {
+            code: 'STORAGE_OBJECT_NOT_FOUND',
+            message: `Expected uploaded object '${filenamePart}' was not found in storage at '${folder}'`,
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
+      // Require usable actual size metadata
+      const rawSize = matchedObj.metadata?.size ?? matchedObj.metadata?.contentLength;
+      const actualBytes =
+        typeof rawSize === 'number'
+          ? rawSize
+          : rawSize !== undefined && rawSize !== null
+            ? Number(rawSize)
+            : NaN;
+
+      if (isNaN(actualBytes) || actualBytes <= 0) {
+        res.status(400).json({
+          error: {
+            code: 'STORAGE_METADATA_UNAVAILABLE',
+            message: 'Uploaded object in storage is missing usable size metadata',
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
+      // Validate 10 MB maximum limit against actual bytes
+      if (actualBytes > 10485760) {
+        res.status(400).json({
+          error: {
+            code: 'FILE_TOO_LARGE',
+            message: `Uploaded file in storage (${actualBytes} B) exceeds the 10MB maximum limit`,
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
+      // Reject significant discrepancies between reported and actual size (> 1KB)
+      if (Math.abs(actualBytes - file_size) > 1024) {
+        res.status(400).json({
+          error: {
+            code: 'METADATA_MISMATCH',
+            message: `Reported file size (${file_size} B) deviates significantly from actual stored object size (${actualBytes} B)`,
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
+      // Validate stored content type where trustworthy Storage metadata is available
+      const storedMime = matchedObj.metadata?.mimetype ?? matchedObj.metadata?.contentType;
+      if (storedMime && typeof storedMime === 'string') {
+        const normalizedStoredMime = storedMime.split(';')[0].trim().toLowerCase();
+        if (normalizedStoredMime !== mime_type.toLowerCase()) {
+          res.status(400).json({
+            error: {
+              code: 'METADATA_MISMATCH',
+              message: `Stored object content type '${normalizedStoredMime}' does not match declared MIME type '${mime_type}'`,
+              requestId: req.id,
+            },
+          });
+          return;
+        }
+      }
+
+      // 5. Insert attachment metadata using verified actual size from storage
       const { data, error } = await supabase
         .from('attachments')
         .insert({
           complaint_id: id,
           uploaded_by: req.user!.id,
           file_name,
-          file_size: verifiedSize,
+          file_size: actualBytes,
           mime_type,
           storage_path,
         })

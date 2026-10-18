@@ -4,7 +4,7 @@
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
 [![Supabase](https://img.shields.io/badge/Database-PostgreSQL%2015%20%2B%20Supabase-emerald.svg)](https://supabase.com/)
-[![Tests](https://img.shields.io/badge/Tests-151%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-163%20Passed-brightgreen.svg)]()
 [![Status](https://img.shields.io/badge/Project%20Status-Phase%201%20Hardened-purple.svg)]()
 
 **ComplaintEase Enterprise** is an incident reporting, plant operations, and complaint resolution platform built as an isolated TypeScript monorepo. It couples an authenticated React 18 client with a stateless Express API and a hardened PostgreSQL 15 / Supabase database.
@@ -172,20 +172,20 @@ The codebase is strictly typed and verified:
 pnpm -r typecheck
 # Result: 0 errors, 0 warnings
 
-# Automated test execution (147 passing tests across 9 suites)
+# Automated test execution (163 passing tests across 9 suites)
 pnpm -r test
 # Result:
 # ✓ src/test/challenger-2-adversarial.test.ts (68 tests)
-# ✓ src/test/security-fixes.test.ts (19 tests)
+# ✓ src/test/security-fixes.test.ts (26 tests)
+# ✓ src/test/workflow-and-env.test.ts (16 tests)
 # ✓ src/test/validators.test.ts (16 tests)
 # ✓ src/test/concurrency.test.ts (11 tests)
-# ✓ src/test/workflow-and-env.test.ts (11 tests)
 # ✓ src/test/error-handler.test.ts (9 tests)
 # ✓ src/test/state-machine.test.ts (8 tests)
 # ✓ src/test/role-permissions.test.ts (5 tests)
 # ✓ src/test/api-endpoints.test.ts (4 tests)
 # Test Files  9 passed (9)
-#      Tests  151 passed (151)
+#      Tests  163 passed (163)
 
 # Production bundling
 pnpm -r build
@@ -193,8 +193,9 @@ pnpm -r build
 ```
 
 > **Testing Architecture Note — In-Memory Vitest vs. Live PostgreSQL SQL Integration:**
-> - **Vitest / Supertest Suites (151 Tests across 9 Suites):** Execute in-memory via mocked Supabase clients for fast deterministic verification of Express route guards, Zod validators, error handling status code mappings (`P0001`–`P0006`, `42501`), OCC conflict handling, attachment extension matching, and controller logic.
-> - **Live PostgreSQL Integration Script (`supabase/tests/rls_and_concurrency_test.sql`, 28 Test Sections):** Standalone transactional integration test suite executing on a live PostgreSQL/Supabase database engine (`psql -f supabase/tests/rls_and_concurrency_test.sql`). It asserts genuine database-level constraints: Row Level Security (RLS) policies, internal comment visibility filters, status locking triggers (`trg_block_direct_status_update`), sensitive profile column immutability (`trg_protect_profile_sensitive_columns`), atomic history insertion (`trg_complaint_initial_history`), optimistic concurrency conflicts, stored procedure execution (`transition_complaint()`, `assign_specialist()`), target specialist role validation, mandatory `expected_version` enforcement, active specialist RLS visibility, specialist transition permissions (`assigned -> in_progress -> resolved`), storage helper functions, unified attachments INSERT RLS, and guarded case-insensitive storage paths.
+> - **Vitest / Supertest Suites (163 Tests across 9 Suites):** Execute in-memory via mocked Supabase clients for fast deterministic verification of Express route guards, Zod validators, error handling status code mappings (`P0001`–`P0006`, `42501`), OCC conflict handling, attachment extension matching, fail-closed storage object verification, production database safeguards, and controller logic.
+> - **Live PostgreSQL Integration Script (`supabase/tests/rls_and_concurrency_test.sql`, 28 Test Blocks with Individual Assertions):** Standalone transactional integration test suite executing on a live PostgreSQL/Supabase database engine (`psql -f supabase/tests/rls_and_concurrency_test.sql`). It asserts genuine database-level constraints across 28 distinct test blocks (and multiple granular sub-assertions A–D): Row Level Security (RLS) policies, internal comment visibility filters, status locking triggers (`trg_block_direct_status_update`), sensitive profile column immutability (`trg_protect_profile_sensitive_columns`), atomic history insertion (`trg_complaint_initial_history`), optimistic concurrency conflicts, stored procedure execution (`transition_complaint()`, `assign_specialist()`), target specialist role validation, mandatory `expected_version` enforcement, active specialist RLS visibility, specialist transition permissions (`assigned -> in_progress -> resolved`), storage helper functions, unified attachments INSERT RLS, and guarded case-insensitive storage paths.
+> - **Untested Workflows (Explicitly Scoped):** Live browser-based end-to-end mutative write workflows against production Supabase (`kdsjbdxtakgslextabpi`) are intentionally protected and NOT RUN to prevent corrupting production data. Containerized Docker execution is NOT TESTED due to local host Linux daemon pipe unavailability.
 
 ---
 

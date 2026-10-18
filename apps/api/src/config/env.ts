@@ -15,6 +15,8 @@ export const envSchema = z.object({
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
 });
 
+export const PRODUCTION_PROJECT_REF = 'kdsjbdxtakgslextabpi';
+
 export function validateEnv(rawEnv: Record<string, string | undefined>) {
   const parsed = envSchema.safeParse(rawEnv);
   const nodeEnv = rawEnv.NODE_ENV || parsed.data?.NODE_ENV || 'development';
@@ -23,8 +25,8 @@ export function validateEnv(rawEnv: Record<string, string | undefined>) {
     if (!parsed.success) {
       throw new Error(`Production environment validation failed: ${parsed.error.message}`);
     }
-    const isPlaceholder = (val: string) =>
-      val.toLowerCase().includes('placeholder') || val.toLowerCase().includes('mock-');
+    const isPlaceholder = (val: string | undefined) =>
+      !val || val.toLowerCase().includes('placeholder') || val.toLowerCase().includes('mock-');
     if (
       isPlaceholder(parsed.data.SUPABASE_URL) ||
       isPlaceholder(parsed.data.SUPABASE_ANON_KEY) ||
@@ -34,17 +36,17 @@ export function validateEnv(rawEnv: Record<string, string | undefined>) {
     }
   }
 
-  // Safeguard against accidental production database mutations in non-production environments
-  if (nodeEnv !== 'production' && parsed.success) {
-    if (parsed.data.SUPABASE_URL.includes('kdsjbdxtakgslextabpi')) {
-      if (rawEnv.ALLOW_PROD_DB_IN_DEV !== 'true') {
-        // Output protective safeguard banner
-        console.warn(
-          '🛡️ [PRODUCTION SAFEGUARD] Connected to production Supabase project (kdsjbdxtakgslextabpi) in non-production mode. ' +
-            'Mutative database tests and writes are strictly guarded. Set ALLOW_PROD_DB_IN_DEV=true only if intentional.',
-        );
-      }
+  // Safeguard against accidental production database access in non-production environments
+  const supabaseUrl = rawEnv.SUPABASE_URL || (parsed.success ? parsed.data.SUPABASE_URL : '');
+  if (nodeEnv !== 'production' && supabaseUrl.includes(PRODUCTION_PROJECT_REF)) {
+    if (rawEnv.ALLOW_PROD_DB_IN_DEV !== 'true') {
+      throw new Error(
+        `🛡️ [PRODUCTION SAFEGUARD] Refusing to connect non-production environment (${nodeEnv}) to production Supabase project (${PRODUCTION_PROJECT_REF}) without explicit opt-in. Set ALLOW_PROD_DB_IN_DEV=true only if intentional.`,
+      );
     }
+    console.warn(
+      `🛡️ [PRODUCTION SAFEGUARD] Explicit opt-in ALLOW_PROD_DB_IN_DEV=true detected. Connecting non-production environment (${nodeEnv}) to production Supabase project (${PRODUCTION_PROJECT_REF}).`,
+    );
   }
 
   return parsed;

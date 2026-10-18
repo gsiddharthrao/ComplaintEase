@@ -257,7 +257,7 @@ flowchart LR
 
     subgraph CI["GitHub Actions CI/CD Pipeline"]
         Runner["ubuntu-latest Runner"]
-        Steps["pnpm install --frozen-lockfile<br>shared build<br>typecheck<br>automated tests (151)<br>production build"]
+        Steps["pnpm install --frozen-lockfile<br>shared build<br>typecheck<br>automated tests (163)<br>production build"]
         Runner --> Steps
     end
 ```

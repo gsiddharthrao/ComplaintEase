@@ -137,7 +137,7 @@ pnpm --filter @complaintease/shared build
 # 2. Typecheck all packages (shared, api, web)
 pnpm -r typecheck
 
-# 3. Run automated unit & integration test suites (151 tests)
+# 3. Run automated unit & integration test suites (163 tests)
 pnpm -r test
 
 # 4. Run production compilation build

@@ -10,6 +10,16 @@ let mockInsertResult: any = { data: { id: 'att-1', file_name: 'test.png' }, erro
 let mockUpdateResult: any = { data: { id: 'target-user', role: 'employee' }, error: null };
 let mockUpdateError: any = null;
 
+let mockStorageListResult: { data: any[] | null; error: any } = {
+  data: [
+    {
+      name: '99999999-9999-9999-9999-999999999999.jpg',
+      metadata: { size: 20480, mimetype: 'image/jpeg' },
+    },
+  ],
+  error: null,
+};
+
 const mockSupabase = {
   from: (table: string) => ({
     select: (_fields?: string, _opts?: any) => ({
@@ -61,9 +71,10 @@ const mockSupabase = {
     }),
   }),
   storage: {
-    from: () => ({
+    from: (_bucket: string) => ({
       createSignedUploadUrl: () => ({ data: { signedUrl: 'http://upload', token: 'tok' }, error: null }),
       createSignedUrl: () => ({ data: { signedUrl: 'http://download' }, error: null }),
+      list: (_folder: string, _opts?: any) => mockStorageListResult,
     }),
   },
 };
@@ -102,6 +113,15 @@ describe('Security Fix Regression Tests', () => {
     mockComplaintLookup = { data: { id: 'complaint-abc' }, error: null };
     mockUpdateError = null;
     mockUpdateResult = { data: { id: 'target-user', role: 'employee' }, error: null };
+    mockStorageListResult = {
+      data: [
+        {
+          name: '99999999-9999-9999-9999-999999999999.jpg',
+          metadata: { size: 20480, mimetype: 'image/jpeg' },
+        },
+      ],
+      error: null,
+    };
   });
 
   describe('Attachment storage_path BOLA / IDOR Protection', () => {
@@ -244,6 +264,169 @@ describe('Security Fix Regression Tests', () => {
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('METADATA_MISMATCH');
       expect(res.body.error.message).toContain('Declared MIME type');
+    });
+  });
+
+  describe('Attachment Storage Metadata Verification Fail-Closed (Section 2 Requirements)', () => {
+    it('rejects confirmation when uploaded object is absent from storage bucket', async () => {
+      mockStorageListResult = { data: [], error: null };
+
+      const res = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments')
+        .send({
+          file_name: 'photo.jpg',
+          file_size: 20480,
+          mime_type: 'image/jpeg',
+          storage_path: 'user-123/complaint-abc/99999999-9999-9999-9999-999999999999.jpg',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('STORAGE_OBJECT_NOT_FOUND');
+      expect(res.body.error.message).toContain('was not found in storage');
+    });
+
+    it('rejects confirmation when Storage listing encounters an error', async () => {
+      mockStorageListResult = {
+        data: null,
+        error: { message: 'Supabase Storage 503 Service Unavailable' },
+      };
+
+      const res = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments')
+        .send({
+          file_name: 'photo.jpg',
+          file_size: 20480,
+          mime_type: 'image/jpeg',
+          storage_path: 'user-123/complaint-abc/99999999-9999-9999-9999-999999999999.jpg',
+        });
+
+      expect(res.status).toBe(502);
+      expect(res.body.error.code).toBe('STORAGE_VERIFICATION_ERROR');
+      expect(res.body.error.message).toContain('Failed to verify storage object');
+    });
+
+    it('rejects confirmation when storage object is missing usable size metadata', async () => {
+      mockStorageListResult = {
+        data: [
+          {
+            name: '99999999-9999-9999-9999-999999999999.jpg',
+            metadata: {},
+          },
+        ],
+        error: null,
+      };
+
+      const res = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments')
+        .send({
+          file_name: 'photo.jpg',
+          file_size: 20480,
+          mime_type: 'image/jpeg',
+          storage_path: 'user-123/complaint-abc/99999999-9999-9999-9999-999999999999.jpg',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('STORAGE_METADATA_UNAVAILABLE');
+      expect(res.body.error.message).toContain('missing usable size metadata');
+    });
+
+    it('rejects confirmation when stored object exceeds 10MB limit', async () => {
+      mockStorageListResult = {
+        data: [
+          {
+            name: '99999999-9999-9999-9999-999999999999.jpg',
+            metadata: { size: 10485761, mimetype: 'image/jpeg' },
+          },
+        ],
+        error: null,
+      };
+
+      const res = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments')
+        .send({
+          file_name: 'photo.jpg',
+          file_size: 10485760,
+          mime_type: 'image/jpeg',
+          storage_path: 'user-123/complaint-abc/99999999-9999-9999-9999-999999999999.jpg',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('FILE_TOO_LARGE');
+      expect(res.body.error.message).toContain('exceeds the 10MB maximum limit');
+    });
+
+    it('rejects confirmation when reported file size significantly deviates from actual stored size', async () => {
+      mockStorageListResult = {
+        data: [
+          {
+            name: '99999999-9999-9999-9999-999999999999.jpg',
+            metadata: { size: 50000, mimetype: 'image/jpeg' },
+          },
+        ],
+        error: null,
+      };
+
+      const res = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments')
+        .send({
+          file_name: 'photo.jpg',
+          file_size: 20480,
+          mime_type: 'image/jpeg',
+          storage_path: 'user-123/complaint-abc/99999999-9999-9999-9999-999999999999.jpg',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('METADATA_MISMATCH');
+      expect(res.body.error.message).toContain('deviates significantly from actual stored object size');
+    });
+
+    it('rejects confirmation when stored object content type does not match declared MIME type', async () => {
+      mockStorageListResult = {
+        data: [
+          {
+            name: '99999999-9999-9999-9999-999999999999.jpg',
+            metadata: { size: 20480, mimetype: 'image/png' },
+          },
+        ],
+        error: null,
+      };
+
+      const res = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments')
+        .send({
+          file_name: 'photo.jpg',
+          file_size: 20480,
+          mime_type: 'image/jpeg',
+          storage_path: 'user-123/complaint-abc/99999999-9999-9999-9999-999999999999.jpg',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('METADATA_MISMATCH');
+      expect(res.body.error.message).toContain('Stored object content type');
+    });
+
+    it('successfully confirms attachment and saves actual verified size into database', async () => {
+      mockStorageListResult = {
+        data: [
+          {
+            name: '99999999-9999-9999-9999-999999999999.jpg',
+            metadata: { size: 20500, mimetype: 'image/jpeg' },
+          },
+        ],
+        error: null,
+      };
+
+      const res = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments')
+        .send({
+          file_name: 'photo.jpg',
+          file_size: 20480,
+          mime_type: 'image/jpeg',
+          storage_path: 'user-123/complaint-abc/99999999-9999-9999-9999-999999999999.jpg',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty('data');
     });
   });
 
