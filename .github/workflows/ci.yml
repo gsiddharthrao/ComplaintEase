@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'fix/**']
   pull_request:
     branches: [main]
 
@@ -30,7 +30,7 @@ jobs:
         run: pnpm approve-builds --all
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile || pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build Shared Package
         run: pnpm --filter @complaintease/shared build

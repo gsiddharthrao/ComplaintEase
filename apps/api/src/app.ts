@@ -8,6 +8,7 @@ import { logger } from './utils/logger.js';
 import { requestIdMiddleware } from './middleware/request-id.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { v1Router } from './routes/index.js';
+import { healthRouter } from './routes/health.js';
 
 export const app = express();
 
@@ -91,6 +92,9 @@ app.use('/api/', (req, res, next) => {
   }
   return generalReadLimiter(req, res, next);
 });
+
+// Health check endpoint at root for container orchestrators and Render
+app.use(healthRouter);
 
 // Mount versioned API routes
 app.use('/api/v1', v1Router);

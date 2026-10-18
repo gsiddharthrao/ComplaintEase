@@ -34,6 +34,19 @@ export function validateEnv(rawEnv: Record<string, string | undefined>) {
     }
   }
 
+  // Safeguard against accidental production database mutations in non-production environments
+  if (nodeEnv !== 'production' && parsed.success) {
+    if (parsed.data.SUPABASE_URL.includes('kdsjbdxtakgslextabpi')) {
+      if (rawEnv.ALLOW_PROD_DB_IN_DEV !== 'true') {
+        // Output protective safeguard banner
+        console.warn(
+          '🛡️ [PRODUCTION SAFEGUARD] Connected to production Supabase project (kdsjbdxtakgslextabpi) in non-production mode. ' +
+            'Mutative database tests and writes are strictly guarded. Set ALLOW_PROD_DB_IN_DEV=true only if intentional.',
+        );
+      }
+    }
+  }
+
   return parsed;
 }
 

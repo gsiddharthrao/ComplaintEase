@@ -4,8 +4,8 @@
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
 [![Supabase](https://img.shields.io/badge/Database-PostgreSQL%2015%20%2B%20Supabase-emerald.svg)](https://supabase.com/)
-[![Tests](https://img.shields.io/badge/Tests-143%20Passed-brightgreen.svg)]()
-[![Status](https://img.shields.io/badge/Project%20Status-Frozen%20%26%20Release%20Ready-purple.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-151%20Passed-brightgreen.svg)]()
+[![Status](https://img.shields.io/badge/Project%20Status-Phase%201%20Hardened-purple.svg)]()
 
 **ComplaintEase Enterprise** is an incident reporting, plant operations, and complaint resolution platform built as an isolated TypeScript monorepo. It couples an authenticated React 18 client with a stateless Express API and a hardened PostgreSQL 15 / Supabase database.
 
@@ -176,16 +176,16 @@ pnpm -r typecheck
 pnpm -r test
 # Result:
 # ✓ src/test/challenger-2-adversarial.test.ts (68 tests)
-# ✓ src/test/security-fixes.test.ts (17 tests)
+# ✓ src/test/security-fixes.test.ts (19 tests)
 # ✓ src/test/validators.test.ts (16 tests)
 # ✓ src/test/concurrency.test.ts (11 tests)
 # ✓ src/test/workflow-and-env.test.ts (11 tests)
 # ✓ src/test/error-handler.test.ts (9 tests)
-# ✓ src/test/state-machine.test.ts (6 tests)
+# ✓ src/test/state-machine.test.ts (8 tests)
 # ✓ src/test/role-permissions.test.ts (5 tests)
 # ✓ src/test/api-endpoints.test.ts (4 tests)
 # Test Files  9 passed (9)
-#      Tests  147 passed (147)
+#      Tests  151 passed (151)
 
 # Production bundling
 pnpm -r build
@@ -193,8 +193,8 @@ pnpm -r build
 ```
 
 > **Testing Architecture Note — In-Memory Vitest vs. Live PostgreSQL SQL Integration:**
-> - **Vitest / Supertest Suites (147 Tests across 9 Suites):** Execute in-memory via mocked Supabase clients for fast deterministic verification of Express route guards, Zod validators, error handling status code mappings (`P0001`–`P0006`, `42501`), OCC conflict handling, and controller logic.
-> - **Live PostgreSQL Integration Script (`supabase/tests/rls_and_concurrency_test.sql`, 18 Test Sections):** Standalone transactional integration test suite executing on a live PostgreSQL/Supabase database engine (`psql -f supabase/tests/rls_and_concurrency_test.sql`). It asserts genuine database-level constraints: Row Level Security (RLS) policies, internal comment visibility filters, status locking triggers (`trg_block_direct_status_update`), sensitive profile column immutability (`trg_protect_profile_sensitive_columns`), atomic history insertion (`trg_complaint_initial_history`), optimistic concurrency conflicts, stored procedure execution (`transition_complaint()`, `assign_specialist()`), target specialist role validation, mandatory `expected_version` enforcement, and role privilege revocation (`REVOKE ... FROM anon`).
+> - **Vitest / Supertest Suites (151 Tests across 9 Suites):** Execute in-memory via mocked Supabase clients for fast deterministic verification of Express route guards, Zod validators, error handling status code mappings (`P0001`–`P0006`, `42501`), OCC conflict handling, attachment extension matching, and controller logic.
+> - **Live PostgreSQL Integration Script (`supabase/tests/rls_and_concurrency_test.sql`, 28 Test Sections):** Standalone transactional integration test suite executing on a live PostgreSQL/Supabase database engine (`psql -f supabase/tests/rls_and_concurrency_test.sql`). It asserts genuine database-level constraints: Row Level Security (RLS) policies, internal comment visibility filters, status locking triggers (`trg_block_direct_status_update`), sensitive profile column immutability (`trg_protect_profile_sensitive_columns`), atomic history insertion (`trg_complaint_initial_history`), optimistic concurrency conflicts, stored procedure execution (`transition_complaint()`, `assign_specialist()`), target specialist role validation, mandatory `expected_version` enforcement, active specialist RLS visibility, specialist transition permissions (`assigned -> in_progress -> resolved`), storage helper functions, unified attachments INSERT RLS, and guarded case-insensitive storage paths.
 
 ---
 
@@ -204,7 +204,7 @@ ComplaintEase operates on a 2-role security model:
 
 | Role | Access Scope | Provisioning Method |
 |---|---|---|
-| **`employee`** | Can file incidents, attach GPS telemetry and photos, view own tickets, add comments, and reopen resolved complaints | Self-registration via the Staff Portal tab (`/login?portal=staff&mode=register`) |
+| **`employee`** | Can file incidents, attach GPS telemetry and photos, view own tickets, advance assigned tickets as designated specialist (`assigned -> in_progress -> resolved`), add comments, and reopen resolved complaints | Self-registration via the Staff Portal tab (`/login?portal=staff&mode=register`) |
 | **`admin`** | Command center access to all department incidents, 1-click specialist assignment, lifecycle transitions, department/category management, role modification, and tamper-resistant audit logs | Initial provisioning via `pnpm seed` or administrative role assignment |
 
 ---
@@ -219,16 +219,17 @@ ComplaintEase operates on a 2-role security model:
 
 ## 8. Documentation Index
 
-For in-depth architectural and interview defense material, explore the `docs/` directory:
+For in-depth architectural, operational, and interview defense material, explore the `docs/` directory:
 
-- [System Architecture](docs/ARCHITECTURE.md)
+- [Master Project Study & Interview Guide (16 Chapters, 30 Q&A)](docs/PROJECT_STUDY_GUIDE.md)
+- [System Architecture & 6 Mermaid Diagrams](docs/ARCHITECTURE.md)
+- [Codebase Guide & Module Map](docs/CODEBASE_GUIDE.md)
+- [API Reference & Route Contracts](docs/API_REFERENCE.md)
+- [Row Level Security (RLS) Matrix](docs/RLS_MATRIX.md)
 - [Complaint Lifecycle State Machine](docs/STATE_MACHINE.md)
-- [Row Level Security Matrix](docs/RLS_MATRIX.md)
+- [Development & Local Setup Guide](docs/DEVELOPMENT_SETUP.md)
+- [Production Deployment Guide](docs/DEPLOYMENT.md)
+- [Troubleshooting & Diagnostic Guide](docs/TROUBLESHOOTING.md)
 - [Entity Relationship Diagram & Indexes](docs/ERD.md)
 - [Architectural Decision Records (ADRs)](docs/DECISIONS.md)
-- [Performance Benchmarking & Profiling](docs/PERFORMANCE.md)
-- [Technical Interview Q&A (40 Questions)](docs/INTERVIEW_QA.md)
-- [Pedagogical Code Walkthrough](docs/WALKTHROUGH.md)
-- [Deployment Guide](docs/DEPLOY.md)
-- [Project Freeze Audit & Release Dossier](docs/PROJECT_FREEZE_AUDIT.md)
 - [Final Verification & Delivery Report](docs/FINAL_VERIFICATION_REPORT.md)

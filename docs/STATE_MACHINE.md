@@ -54,9 +54,9 @@ The transitions configured in `packages/shared/src/types/enums.ts` and validated
 |---|---|---|---|
 | `submitted` | `under_review`, `assigned`, `in_progress`, `rejected` | `admin` | Triage, direct specialist assignment, or immediate rejection for spam/duplicate filings. |
 | `under_review` | `assigned`, `in_progress`, `resolved`, `rejected` | `admin` | Routing to assigned worker, direct investigation, or rapid dismissal. |
-| `assigned` | `in_progress`, `resolved`, `closed`, `rejected` | `admin` | Investigation commencement, immediate sign-off, or closure. |
-| `in_progress` | `resolved`, `assigned`, `closed`, `rejected` | `admin` | Remediation completion (sets `resolved_at = now()`), worker reassignment, or rejection. |
-| `resolved` | `closed`, `reopened`, `in_progress` | `admin`, **`employee`** (reopen only) | Creator empowerment to reopen if unsatisfied with the fix; admin closure or resume. |
+| `assigned` | `in_progress`, `resolved`, `closed`, `rejected` | `admin`, **`employee`** (active specialist: `in_progress` only) | Investigation commencement by assigned specialist or administrator, immediate sign-off, or closure. |
+| `in_progress` | `resolved`, `assigned`, `closed`, `rejected` | `admin`, **`employee`** (active specialist: `resolved` only) | Remediation completion by assigned specialist (sets `resolved_at = now()`), worker reassignment, or rejection. |
+| `resolved` | `closed`, `reopened`, `in_progress` | `admin`, **`employee`** (creator: `reopened` only) | Creator empowerment to reopen if unsatisfied with the fix; admin closure or resume. |
 | `reopened` | `in_progress`, `assigned`, `resolved`, `rejected` | `admin` | Secondary triage and re-assignment to active remediation. |
 | `closed` | *(none)* | *(none)* | **Terminal State:** Read-only historical record; immutable. |
 | `rejected` | *(none)* | *(none)* | **Terminal State:** Archival state for invalid or unserviceable complaints. |

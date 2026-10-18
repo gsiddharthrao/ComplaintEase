@@ -14,6 +14,16 @@ if (!adminEmail || !adminPassword) {
   process.exit(1);
 }
 
+// Production safeguard
+const targetUrl = process.env.SUPABASE_URL || '';
+const isProdTarget = targetUrl.includes('kdsjbdxtakgslextabpi') || process.env.NODE_ENV === 'production';
+if (isProdTarget && process.env.ALLOW_PROD_SEED !== 'true') {
+  logger.error(
+    '🛡️ [PRODUCTION SAFEGUARD] Refusing to execute user seed script against production Supabase without ALLOW_PROD_SEED=true',
+  );
+  process.exit(1);
+}
+
 const PROVISION_USERS = [
   {
     email: adminEmail,
@@ -24,31 +34,61 @@ const PROVISION_USERS = [
   },
 ];
 
+async function findUserByEmail(supabase: any, email: string) {
+  let page = 1;
+  const perPage = 50;
+  while (true) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      logger.error({ err: error }, 'Error listing users during seed check');
+      break;
+    }
+    if (!data?.users || data.users.length === 0) break;
+    const match = data.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+    if (match) return match;
+    if (data.users.length < perPage) break;
+    page++;
+  }
+  return null;
+}
+
 async function seed() {
   logger.info('🌱 Starting user seeding...');
   const supabase = getAdminClient();
 
   for (const user of PROVISION_USERS) {
     try {
-      logger.info(`Creating or updating user ${user.email}...`);
-      // Check if user already exists
-      const { data: listData } = await supabase.auth.admin.listUsers();
-      const existingUser = listData?.users.find((u) => u.email === user.email);
+      logger.info(`Checking user ${user.email}...`);
+      const existingUser = await findUserByEmail(supabase, user.email);
 
       let userId: string;
 
       if (existingUser) {
         userId = existingUser.id;
-        // Update user password and metadata
-        await supabase.auth.admin.updateUserById(userId, {
-          password: user.password,
+        const resetPassword = process.env.RESET_EXISTING_PASSWORD === 'true';
+
+        const updatePayload: Record<string, any> = {
           user_metadata: {
             full_name: user.full_name,
             role: user.role,
             department_id: user.department_id,
           },
-        });
-        logger.info(`Updated existing user: ${user.email} (${userId})`);
+        };
+
+        if (resetPassword) {
+          updatePayload.password = user.password;
+          logger.info(`Resetting password for existing user: ${user.email} (${userId})`);
+        } else {
+          logger.info(
+            `Existing user found: ${user.email} (${userId}). Preserving existing password (set RESET_EXISTING_PASSWORD=true to overwrite).`,
+          );
+        }
+
+        const { error: updateErr } = await supabase.auth.admin.updateUserById(userId, updatePayload);
+        if (updateErr) {
+          logger.error({ err: updateErr }, `Failed to update existing user ${user.email}`);
+          continue;
+        }
       } else {
         const { data, error } = await supabase.auth.admin.createUser({
           email: user.email,

@@ -17,6 +17,17 @@ export const ALLOWED_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ] as const;
 
+export const MIME_TO_EXTENSIONS: Record<string, string[]> = {
+  'image/jpeg': ['jpg', 'jpeg'],
+  'image/png': ['png'],
+  'image/webp': ['webp'],
+  'image/gif': ['gif'],
+  'application/pdf': ['pdf'],
+  'text/plain': ['txt', 'text'],
+  'application/msword': ['doc'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['docx'],
+};
+
 export const uploadUrlSchema = z.object({
   file_name: z.string().min(1).max(255),
   file_size: z.number().int().min(1).max(10485760), // max 10MB
@@ -151,13 +162,73 @@ attachmentsRouter.post(
         return;
       }
 
+      // 3. Server-side validation: ensure path extension matches declared MIME type
+      const ext = filenamePart.split('.').pop()?.toLowerCase() || '';
+      const allowedExts = MIME_TO_EXTENSIONS[mime_type] || [];
+      if (!allowedExts.includes(ext)) {
+        res.status(400).json({
+          error: {
+            code: 'METADATA_MISMATCH',
+            message: `Declared MIME type '${mime_type}' does not match file extension '.${ext}'`,
+            requestId: req.id,
+          },
+        });
+        return;
+      }
+
+      // 4. Server-side validation: inspect stored object metadata where supported
+      let verifiedSize = file_size;
+      try {
+        if (typeof supabase.storage?.from === 'function') {
+          const storageBucket = supabase.storage.from('attachments');
+          if (typeof storageBucket.list === 'function') {
+            const folder = `${req.user!.id}/${id}`;
+            const { data: fileList, error: listErr } = await storageBucket.list(folder, {
+              search: filenamePart,
+            });
+
+            if (!listErr && Array.isArray(fileList)) {
+              const matchedObj = fileList.find((f: any) => f.name === filenamePart);
+              if (matchedObj) {
+                if (matchedObj.metadata?.size) {
+                  const actualBytes = Number(matchedObj.metadata.size);
+                  if (actualBytes > 10485760) {
+                    res.status(400).json({
+                      error: {
+                        code: 'FILE_TOO_LARGE',
+                        message: 'Uploaded file in storage exceeds the 10MB maximum limit',
+                        requestId: req.id,
+                      },
+                    });
+                    return;
+                  }
+                  if (Math.abs(actualBytes - file_size) > 1024) {
+                    res.status(400).json({
+                      error: {
+                        code: 'METADATA_MISMATCH',
+                        message: `Reported file size (${file_size} B) deviates significantly from actual stored object size (${actualBytes} B)`,
+                        requestId: req.id,
+                      },
+                    });
+                    return;
+                  }
+                  verifiedSize = actualBytes;
+                }
+              }
+            }
+          }
+        }
+      } catch {
+        // Fallback gracefully if storage metadata inspect is unmocked or unsupported
+      }
+
       const { data, error } = await supabase
         .from('attachments')
         .insert({
           complaint_id: id,
           uploaded_by: req.user!.id,
           file_name,
-          file_size,
+          file_size: verifiedSize,
           mime_type,
           storage_path,
         })

@@ -24,6 +24,7 @@ DECLARE
   v_dept_hr UUID := '22222222-2222-2222-2222-222222222222';
   v_emp_id UUID := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
   v_emp2_id UUID := 'aaaaaaaa-aaaa-aaaa-aaaa-bbbbbbbbbbbb';
+  v_emp3_id UUID := 'aaaaaaaa-aaaa-aaaa-aaaa-cccccccccccc';
   v_admin_id UUID := 'cccccccc-cccc-cccc-cccc-cccccccccccc';
   v_comp1_id UUID := 'dddddddd-dddd-dddd-dddd-dddddddddddd';
   v_comp2_id UUID := 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
@@ -32,9 +33,12 @@ DECLARE
   v_comp_rejected UUID := '88888888-8888-8888-8888-888888888888';
   v_cat_id UUID := 'a1111111-1111-1111-1111-111111111111';
   v_comment_id UUID := 'ffffffff-ffff-ffff-ffff-ffffffffffff';
+  v_comment2_id UUID := 'ffffffff-ffff-ffff-ffff-eeeeeeeeeeee';
+  v_attachment_id UUID := 'ffffffff-aaaa-bbbb-cccc-dddddddddddd';
   v_audit_id UUID;
   v_count INT;
   v_assign_result JSONB;
+  v_transition_res JSONB;
 BEGIN
   RAISE NOTICE '=== STARTING COMPLAINTEASE RLS & INTEGRITY TESTS ===';
 
@@ -52,6 +56,7 @@ BEGIN
   VALUES
     (v_emp_id, 'authenticated', 'authenticated', 'rls_test_emp1@example.com', '{"full_name":"Test Employee 1","role":"admin"}'::jsonb, now(), now()),
     (v_emp2_id, 'authenticated', 'authenticated', 'rls_test_emp2@example.com', '{"full_name":"Test Employee 2"}'::jsonb, now(), now()),
+    (v_emp3_id, 'authenticated', 'authenticated', 'rls_test_emp3@example.com', '{"full_name":"Test Employee 3"}'::jsonb, now(), now()),
     (v_admin_id, 'authenticated', 'authenticated', 'rls_test_admin@example.com', '{"full_name":"Test Admin"}'::jsonb, now(), now())
   ON CONFLICT (id) DO NOTHING;
 
@@ -65,11 +70,14 @@ BEGIN
   INSERT INTO profiles (id, full_name, role, department_id) VALUES
     (v_emp_id, 'Test Employee 1', 'employee', v_dept_it),
     (v_emp2_id, 'Test Employee 2', 'employee', v_dept_hr),
+    (v_emp3_id, 'Test Employee 3', 'employee', v_dept_it),
     (v_admin_id, 'Test Admin', 'admin', NULL)
   ON CONFLICT (id) DO UPDATE SET role = EXCLUDED.role, department_id = EXCLUDED.department_id;
 
-  -- 2. Clean test complaints
+  -- 2. Clean test complaints, comments, and attachments
   DELETE FROM complaints WHERE id IN (v_comp1_id, v_comp2_id, v_comp3_id, v_comp_closed, v_comp_rejected);
+  DELETE FROM comments WHERE id IN (v_comment_id, v_comment2_id);
+  DELETE FROM attachments WHERE id = v_attachment_id;
 
   -- 3. Insert baseline complaints
   INSERT INTO complaints (id, title, description, category_id, department_id, created_by, status, priority, version)
@@ -243,8 +251,8 @@ BEGIN
   -- TEST 11: Canonical State Machine Matrix in allowed_transitions
   -- -------------------------------------------------------------------------
   SELECT count(*) INTO v_count FROM allowed_transitions;
-  IF v_count < 23 THEN
-    RAISE EXCEPTION 'TEST 11 FAILED: allowed_transitions has only % rows, expected at least 23!', v_count;
+  IF v_count != 23 THEN
+    RAISE EXCEPTION 'TEST 11 FAILED: allowed_transitions has % rows, expected exactly 23!', v_count;
   END IF;
 
   SELECT count(*) INTO v_count FROM allowed_transitions WHERE from_status IN ('closed', 'rejected');
@@ -407,6 +415,285 @@ BEGIN
     WHEN SQLSTATE 'P0003' THEN
       RAISE NOTICE 'PASS: Test 18C - Stale expected_version on assign_specialist blocked (SQLSTATE P0003)';
   END;
+
+  -- -------------------------------------------------------------------------
+  -- TEST 19: Active Assignee Can View Assigned Complaint via Authenticated RLS
+  -- -------------------------------------------------------------------------
+  -- Complaint v_comp2_id was created by v_emp2_id. Admin assigns it to v_emp_id.
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
+  PERFORM assign_specialist(v_comp2_id, v_emp_id, 'Assigning HR complaint to Employee 1 specialist', 1);
+
+  -- Under authenticated RLS as Employee 1 (active assignee), v_comp2_id MUST be visible
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp_id::text, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+
+  SELECT count(*) INTO v_count FROM complaints WHERE id = v_comp2_id;
+  EXECUTE 'RESET ROLE';
+  IF v_count != 1 THEN
+    RAISE EXCEPTION 'TEST 19 FAILED: Active assignee could not view assigned complaint under authenticated RLS!';
+  END IF;
+  RAISE NOTICE 'PASS: Test 19 - Active assignee can view assigned complaint under authenticated RLS';
+
+  -- -------------------------------------------------------------------------
+  -- TEST 20: Unassigned Employee Cannot View Another Employee''s Complaint via RLS
+  -- -------------------------------------------------------------------------
+  -- Employee 3 is NOT the creator of v_comp2_id and is NOT assigned to it
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp3_id::text, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+
+  SELECT count(*) INTO v_count FROM complaints WHERE id = v_comp2_id;
+  EXECUTE 'RESET ROLE';
+  IF v_count != 0 THEN
+    RAISE EXCEPTION 'TEST 20 FAILED: Unassigned employee was able to view another employee complaint under authenticated RLS!';
+  END IF;
+  RAISE NOTICE 'PASS: Test 20 - Unassigned employee cannot view another employee complaint under authenticated RLS';
+
+  -- -------------------------------------------------------------------------
+  -- TEST 21: Active Assignee Can View Permitted External Comments, Attachments and History
+  -- -------------------------------------------------------------------------
+  -- Create external comment, internal comment, attachment and history on v_comp2_id
+  INSERT INTO comments (id, complaint_id, author_id, body, is_internal)
+  VALUES
+    (v_comment2_id, v_comp2_id, v_emp2_id, 'External comment from ticket creator', false),
+    (gen_random_uuid(), v_comp2_id, v_admin_id, 'CONFIDENTIAL: Admin internal assessment', true)
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO attachments (id, complaint_id, uploaded_by, file_name, file_size, mime_type, storage_path)
+  VALUES (v_attachment_id, v_comp2_id, v_emp2_id, 'evidence.pdf', 1024, 'application/pdf', v_emp2_id::text || '/' || v_comp2_id::text || '/evidence.pdf')
+  ON CONFLICT (id) DO NOTHING;
+
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp_id::text, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+
+  -- Active assignee can see external comment
+  SELECT count(*) INTO v_count FROM comments WHERE complaint_id = v_comp2_id AND is_internal = false;
+  IF v_count < 1 THEN
+    EXECUTE 'RESET ROLE';
+    RAISE EXCEPTION 'TEST 21A FAILED: Active assignee could not view external comments on assigned complaint!';
+  END IF;
+
+  -- Active assignee CANNOT see internal staff note
+  SELECT count(*) INTO v_count FROM comments WHERE complaint_id = v_comp2_id AND is_internal = true;
+  IF v_count != 0 THEN
+    EXECUTE 'RESET ROLE';
+    RAISE EXCEPTION 'TEST 21B FAILED: Internal comments were visible to employee specialist!';
+  END IF;
+
+  -- Active assignee can see attachment metadata
+  SELECT count(*) INTO v_count FROM attachments WHERE complaint_id = v_comp2_id;
+  IF v_count != 1 THEN
+    EXECUTE 'RESET ROLE';
+    RAISE EXCEPTION 'TEST 21C FAILED: Active assignee could not view attachment on assigned complaint!';
+  END IF;
+
+  -- Active assignee can see status history timeline
+  SELECT count(*) INTO v_count FROM status_history WHERE complaint_id = v_comp2_id;
+  EXECUTE 'RESET ROLE';
+  IF v_count < 1 THEN
+    RAISE EXCEPTION 'TEST 21D FAILED: Active assignee could not view status history on assigned complaint!';
+  END IF;
+  RAISE NOTICE 'PASS: Test 21 - Active assignee can view external comments, attachments, and timeline (internal notes hidden)';
+
+  -- -------------------------------------------------------------------------
+  -- TEST 22: Active Assignee Can Progress assigned -> in_progress and in_progress -> resolved
+  -- -------------------------------------------------------------------------
+  -- v_comp2_id is currently status 'assigned' with version = 2 (after assign_specialist in Test 19)
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp_id::text, 'role', 'authenticated')::text, true);
+
+  -- 22A: Active assignee transitions assigned -> in_progress
+  v_transition_res := transition_complaint(v_comp2_id, 'in_progress', 'Specialist starting troubleshooting', 2);
+  IF v_transition_res->>'version' != '3' OR v_transition_res->>'new_version' != '3' THEN
+    RAISE EXCEPTION 'TEST 22A FAILED: transition_complaint must return both version and new_version with value 3 (got version=%, new_version=%)',
+      v_transition_res->>'version', v_transition_res->>'new_version';
+  END IF;
+
+  SELECT count(*) INTO v_count FROM complaints WHERE id = v_comp2_id AND status = 'in_progress' AND version = 3;
+  IF v_count != 1 THEN
+    RAISE EXCEPTION 'TEST 22A FAILED: Active assignee transition to in_progress did not update status or increment version!';
+  END IF;
+
+  -- 22B: Active assignee transitions in_progress -> resolved
+  v_transition_res := transition_complaint(v_comp2_id, 'resolved', 'Specialist resolved the issue', 3);
+  IF v_transition_res->>'version' != '4' OR v_transition_res->>'new_version' != '4' THEN
+    RAISE EXCEPTION 'TEST 22B FAILED: transition_complaint must return both version and new_version with value 4 (got version=%, new_version=%)',
+      v_transition_res->>'version', v_transition_res->>'new_version';
+  END IF;
+
+  SELECT count(*) INTO v_count FROM complaints WHERE id = v_comp2_id AND status = 'resolved' AND version = 4 AND resolved_at IS NOT NULL;
+  IF v_count != 1 THEN
+    RAISE EXCEPTION 'TEST 22B FAILED: Active assignee transition to resolved did not set resolved_at or increment version!';
+  END IF;
+  RAISE NOTICE 'PASS: Test 22 - Active assignee successfully transitioned assigned -> in_progress -> resolved (verified version and new_version contract)';
+
+  -- -------------------------------------------------------------------------
+  -- TEST 23: Active Assignee Forbidden From Closing or Rejecting Complaint
+  -- -------------------------------------------------------------------------
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp_id::text, 'role', 'authenticated')::text, true);
+
+  -- 23A: Employee cannot close complaint (closing is administrator-only)
+  BEGIN
+    PERFORM transition_complaint(v_comp2_id, 'closed', 'Specialist attempting to close ticket', 4);
+    RAISE EXCEPTION 'TEST 23A FAILED: Employee was able to close complaint!';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      RAISE NOTICE 'PASS: Test 23A - Active assignee forbidden from closing complaint (SQLSTATE 42501)';
+  END;
+
+  -- -------------------------------------------------------------------------
+  -- TEST 24: Unassigned Employee Forbidden From Transitioning Others'' Complaints
+  -- -------------------------------------------------------------------------
+  -- Employee 3 is not assigned to v_comp1_id or v_comp2_id
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp3_id::text, 'role', 'authenticated')::text, true);
+
+  BEGIN
+    PERFORM transition_complaint(v_comp2_id, 'in_progress', 'Unassigned employee attempting transition', 4);
+    RAISE EXCEPTION 'TEST 24 FAILED: Unassigned employee was able to transition complaint!';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      RAISE NOTICE 'PASS: Test 24 - Unassigned employee forbidden from transitioning complaint (SQLSTATE 42501)';
+  END;
+
+  -- -------------------------------------------------------------------------
+  -- TEST 25: Replaced/Inactive Assignee Automatically Loses Access
+  -- -------------------------------------------------------------------------
+  -- Admin replaces active assignee: reassigns v_comp2_id from v_emp_id to v_emp3_id
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
+  PERFORM assign_specialist(v_comp2_id, v_emp3_id, 'Reassigning specialist to Employee 3', 4);
+
+  -- Verify v_emp_id assignment is now is_active = false
+  SELECT count(*) INTO v_count FROM assignments WHERE complaint_id = v_comp2_id AND assigned_to = v_emp_id AND is_active = true;
+  IF v_count != 0 THEN
+    RAISE EXCEPTION 'TEST 25 SETUP FAILED: Previous assignment was not deactivated!';
+  END IF;
+
+  -- Under authenticated RLS, previous assignee (Employee 1) MUST NO LONGER see v_comp2_id
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp_id::text, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+
+  SELECT count(*) INTO v_count FROM complaints WHERE id = v_comp2_id;
+  EXECUTE 'RESET ROLE';
+  IF v_count != 0 THEN
+    RAISE EXCEPTION 'TEST 25 FAILED: Inactive/replaced assignee still had access to complaint under authenticated RLS!';
+  END IF;
+  RAISE NOTICE 'PASS: Test 25 - Replaced/inactive assignee automatically loses assignment-based access';
+
+  -- -------------------------------------------------------------------------
+  -- TEST 26: Storage Helper Function Access Parity
+  -- -------------------------------------------------------------------------
+  -- New assignee v_emp3_id has active assignment; previous assignee v_emp_id does not
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp3_id::text, 'role', 'authenticated')::text, true);
+  IF NOT public.is_complaint_assigned_to_user(v_comp2_id) THEN
+    RAISE EXCEPTION 'TEST 26A FAILED: is_complaint_assigned_to_user returned false for active assignee!';
+  END IF;
+
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp_id::text, 'role', 'authenticated')::text, true);
+  IF public.is_complaint_assigned_to_user(v_comp2_id) THEN
+    RAISE EXCEPTION 'TEST 26B FAILED: is_complaint_assigned_to_user returned true for inactive assignee!';
+  END IF;
+
+  -- Creator check: v_emp2_id is creator of v_comp2_id, v_emp3_id is not
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp2_id::text, 'role', 'authenticated')::text, true);
+  IF NOT public.is_complaint_creator(v_comp2_id) THEN
+    RAISE EXCEPTION 'TEST 26C FAILED: is_complaint_creator returned false for complaint creator!';
+  END IF;
+
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp3_id::text, 'role', 'authenticated')::text, true);
+  IF public.is_complaint_creator(v_comp2_id) THEN
+    RAISE EXCEPTION 'TEST 26D FAILED: is_complaint_creator returned true for non-creator!';
+  END IF;
+  RAISE NOTICE 'PASS: Test 26 - Storage helper functions correctly enforce active assignee and creator checks';
+
+  -- -------------------------------------------------------------------------
+  -- TEST 27: Attachments INSERT RLS (SEC-01)
+  -- -------------------------------------------------------------------------
+  -- 27A: Active assignee (Employee 3) can insert an attachment row
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp3_id::text, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+
+  INSERT INTO attachments (complaint_id, uploaded_by, file_name, file_size, mime_type, storage_path)
+  VALUES (v_comp2_id, v_emp3_id, 'specialist_evidence.pdf', 1024, 'application/pdf', v_emp3_id::text || '/' || v_comp2_id::text || '/specialist_evidence.pdf');
+
+  EXECUTE 'RESET ROLE';
+  RAISE NOTICE 'PASS: Test 27A - Active assignee can insert attachment under authenticated RLS';
+
+  -- 27B: Complaint creator (Employee 2) can insert an attachment row
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp2_id::text, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+
+  INSERT INTO attachments (complaint_id, uploaded_by, file_name, file_size, mime_type, storage_path)
+  VALUES (v_comp2_id, v_emp2_id, 'creator_doc.pdf', 2048, 'application/pdf', v_emp2_id::text || '/' || v_comp2_id::text || '/creator_doc.pdf');
+
+  EXECUTE 'RESET ROLE';
+  RAISE NOTICE 'PASS: Test 27B - Complaint creator can insert attachment under authenticated RLS';
+
+  -- 27C: Admin can insert an attachment row
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin_id::text, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+
+  INSERT INTO attachments (complaint_id, uploaded_by, file_name, file_size, mime_type, storage_path)
+  VALUES (v_comp2_id, v_admin_id, 'admin_inspection.pdf', 4096, 'application/pdf', v_admin_id::text || '/' || v_comp2_id::text || '/admin_inspection.pdf');
+
+  EXECUTE 'RESET ROLE';
+  RAISE NOTICE 'PASS: Test 27C - Admin can insert attachment under authenticated RLS';
+
+  -- 27D: Unassigned employee (Employee 1, neither creator nor active assignee) CANNOT insert attachment
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_emp_id::text, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+
+  BEGIN
+    INSERT INTO attachments (complaint_id, uploaded_by, file_name, file_size, mime_type, storage_path)
+    VALUES (v_comp2_id, v_emp_id, 'unauthorized.pdf', 1024, 'application/pdf', v_emp_id::text || '/' || v_comp2_id::text || '/unauthorized.pdf');
+    EXECUTE 'RESET ROLE';
+    RAISE EXCEPTION 'TEST 27D FAILED: Unassigned employee was able to insert attachment under authenticated RLS!';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      EXECUTE 'RESET ROLE';
+      RAISE NOTICE 'PASS: Test 27D - Unassigned employee blocked from inserting attachment (SQLSTATE 42501)';
+  END;
+
+  -- -------------------------------------------------------------------------
+  -- TEST 28: Storage Scoped Path Validation & UUID Regex Casing (SEC-03)
+  -- -------------------------------------------------------------------------
+  -- 28A: Case-insensitive UUID matching: uppercase UUIDs match ~*
+  IF NOT ('EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') THEN
+    RAISE EXCEPTION 'TEST 28A FAILED: Uppercase UUID failed case-insensitive match (~*)!';
+  END IF;
+  RAISE NOTICE 'PASS: Test 28A - Storage path UUID pattern matches uppercase hex case-insensitively';
+
+  -- 28B: Guarded UUID cast prevents 22P02 exception on malformed paths
+  IF (
+    CASE
+      WHEN split_part('not-a-uuid/malformed/filename.pdf', '/', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      THEN public.is_complaint_creator(split_part('not-a-uuid/malformed/filename.pdf', '/', 2)::uuid)
+      ELSE false
+    END
+  ) THEN
+    RAISE EXCEPTION 'TEST 28B FAILED: Malformed path unexpectedly evaluated to true!';
+  END IF;
+  RAISE NOTICE 'PASS: Test 28B - Guarded UUID cast prevents 22P02 runtime errors on malformed storage paths';
+
+  -- 28C: Distinct differentiation between 2-segment legacy paths and 3-segment canonical paths
+  IF NOT (
+    split_part('user-uid/comp-uid/file.pdf', '/', 3) <> '' AND
+    split_part('user-uid/comp-uid/file.pdf', '/', 4) = ''
+  ) THEN
+    RAISE EXCEPTION 'TEST 28C FAILED: 3-part path format check failed!';
+  END IF;
+
+  IF (
+    split_part('user-uid/comp-uid/file.pdf', '/', 2) <> '' AND
+    split_part('user-uid/comp-uid/file.pdf', '/', 3) = ''
+  ) THEN
+    RAISE EXCEPTION 'TEST 28C FAILED: 3-part path collided with 2-part legacy check!';
+  END IF;
+
+  IF NOT (
+    split_part('comp-uid/file.pdf', '/', 2) <> '' AND
+    split_part('comp-uid/file.pdf', '/', 3) = ''
+  ) THEN
+    RAISE EXCEPTION 'TEST 28D FAILED: 2-part legacy path check failed!';
+  END IF;
+  RAISE NOTICE 'PASS: Test 28C & 28D - Strict path segment checks prevent 2-part and 3-part collision';
 
   RAISE NOTICE '=== ALL RLS & INTEGRITY TESTS PASSED SUCCESSFULLY ===';
 END $$;

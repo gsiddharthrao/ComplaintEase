@@ -61,11 +61,25 @@ export const EmployeeDashboard: React.FC = () => {
     refetchOnMount: 'always',
   });
 
+  const [scopeFilter, setScopeFilter] = useState<'all' | 'reported' | 'assigned'>('all');
+
   const allComplaints: ComplaintWithRelations[] = useMemo(() => {
     if (Array.isArray(data)) return data as ComplaintWithRelations[];
     if (data && Array.isArray((data as any).data)) return (data as any).data as ComplaintWithRelations[];
     return [];
   }, [data]);
+
+  const assignedToMeCount = useMemo(() => {
+    if (!profile?.id) return 0;
+    return allComplaints.filter(
+      (c) => c.assigned_to?.id === profile.id || (profile.full_name && c.assigned_to?.full_name === profile.full_name),
+    ).length;
+  }, [allComplaints, profile?.id, profile?.full_name]);
+
+  const reportedByMeCount = useMemo(() => {
+    if (!profile?.id) return 0;
+    return allComplaints.filter((c) => c.created_by === profile.id).length;
+  }, [allComplaints, profile?.id]);
 
   const statusCounts = useMemo(() => {
     return {
@@ -79,6 +93,13 @@ export const EmployeeDashboard: React.FC = () => {
 
   const complaints: ComplaintWithRelations[] = useMemo(() => {
     return allComplaints.filter((c) => {
+      if (scopeFilter === 'reported' && c.created_by !== profile?.id) return false;
+      if (
+        scopeFilter === 'assigned' &&
+        !(c.assigned_to?.id === profile?.id || (profile?.full_name && c.assigned_to?.full_name === profile.full_name))
+      ) {
+        return false;
+      }
       if (statusFilter && c.status !== statusFilter) return false;
       if (priorityFilter && c.priority !== priorityFilter) return false;
       if (search) {
@@ -90,7 +111,7 @@ export const EmployeeDashboard: React.FC = () => {
       }
       return true;
     });
-  }, [allComplaints, statusFilter, priorityFilter, search]);
+  }, [allComplaints, scopeFilter, statusFilter, priorityFilter, search, profile?.id, profile?.full_name]);
 
   return (
     <div className="space-y-6">
@@ -98,11 +119,19 @@ export const EmployeeDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            {profile?.role === 'admin' ? 'Plant Incidents & Work Register' : 'My Reported Incidents'}
+            {profile?.role === 'admin'
+              ? 'Plant Incidents & Work Register'
+              : scopeFilter === 'assigned'
+              ? 'Assigned Work Orders (Specialist)'
+              : scopeFilter === 'reported'
+              ? 'My Reported Incidents'
+              : 'Plant Incidents & Work Register'}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             {profile?.role === 'admin'
               ? 'Complete overview of reported plant breakdowns, safety hazards, and field repairs.'
+              : scopeFilter === 'assigned'
+              ? 'Active maintenance work orders and incident repairs assigned to you for resolution.'
               : 'Track reported equipment breakdowns, safety alarms, and technician progress.'}
           </p>
         </div>
@@ -117,6 +146,63 @@ export const EmployeeDashboard: React.FC = () => {
           </Link>
         )}
       </div>
+
+      {/* Scope Navigation Tabs: All / My Reported / Assigned to Me */}
+      {profile?.role === 'employee' && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
+          <button
+            type="button"
+            onClick={() => setScopeFilter('all')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-xs ${
+              scopeFilter === 'all'
+                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <span>All Visible Incidents</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/60 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold">
+              {allComplaints.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setScopeFilter('reported')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-xs ${
+              scopeFilter === 'reported'
+                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <span>My Reported</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/60 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold">
+              {reportedByMeCount}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setScopeFilter('assigned')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm ${
+              scopeFilter === 'assigned'
+                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/25 ring-2 ring-brand-500/30'
+                : 'bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/30 border border-brand-200 dark:border-brand-900/50'
+            }`}
+          >
+            <Wrench className="w-3.5 h-3.5" />
+            <span>Assigned to Me</span>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                scopeFilter === 'assigned'
+                  ? 'bg-white text-brand-700'
+                  : 'bg-brand-100 dark:bg-brand-950 text-brand-800 dark:text-brand-300'
+              }`}
+            >
+              {assignedToMeCount}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Quick Status Filter Navigation Pills */}
       <div className="flex flex-wrap items-center gap-2">
@@ -341,7 +427,22 @@ export const EmployeeDashboard: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 mt-2">
                   <span>Filed {new Date(item.created_at).toLocaleDateString()}</span>
                   {item.assigned_to && (
-                    <span>Assigned to: <strong className="text-slate-700 dark:text-slate-300">{item.assigned_to.full_name}</strong></span>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium ${
+                        item.assigned_to.id === profile?.id ||
+                        (profile?.full_name && item.assigned_to.full_name === profile.full_name)
+                          ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold'
+                          : 'text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      <Wrench className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                      <span>
+                        {item.assigned_to.id === profile?.id ||
+                        (profile?.full_name && item.assigned_to.full_name === profile.full_name)
+                          ? 'Assigned to You (Specialist)'
+                          : `Assigned to: ${item.assigned_to.full_name}`}
+                      </span>
+                    </span>
                   )}
                   {item.location_lat != null && item.location_lng != null ? (
                     <button

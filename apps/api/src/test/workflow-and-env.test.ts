@@ -4,6 +4,8 @@ import { app } from '../app.js';
 import {
   ALLOWED_TRANSITIONS,
   TRANSITION_PERMISSIONS,
+  SPECIALIST_PERMITTED_TRANSITIONS,
+  CREATOR_PERMITTED_TRANSITIONS,
   ComplaintStatus,
 } from '@complaintease/shared';
 import { ALLOWED_MIME_TYPES } from '../routes/attachments.js';
@@ -91,26 +93,31 @@ describe('Workflow, Security Invariants & Environment Hardening (R1-R7)', () => 
       expect(TRANSITION_PERMISSIONS['rejected']).toEqual([]);
     });
 
-    it('restricts employee transitions strictly to resolved -> reopened (Scenario 15)', () => {
-      const statuses: ComplaintStatus[] = [
+    it('restricts employee transitions strictly to specialist work and creator reopening (Scenario 15)', () => {
+      const nonEmployeeStatuses: ComplaintStatus[] = [
         'submitted',
         'under_review',
-        'assigned',
-        'in_progress',
         'closed',
         'rejected',
         'reopened',
       ];
 
-      // Non-resolved states do NOT include employee
-      statuses.forEach((status) => {
+      // Non-employee states do NOT include employee
+      nonEmployeeStatuses.forEach((status) => {
         expect(TRANSITION_PERMISSIONS[status]).not.toContain('employee');
       });
 
-      // Resolved state permits employee (for reopening) and admin
+      // Resolved state permits employee (for creator reopening) and admin
       expect(TRANSITION_PERMISSIONS['resolved']).toContain('employee');
       expect(TRANSITION_PERMISSIONS['resolved']).toContain('admin');
       expect(ALLOWED_TRANSITIONS['resolved']).toContain('reopened');
+      expect(CREATOR_PERMITTED_TRANSITIONS['resolved']).toContain('reopened');
+
+      // Assigned & in_progress permit employee (for active specialist work)
+      expect(TRANSITION_PERMISSIONS['assigned']).toContain('employee');
+      expect(TRANSITION_PERMISSIONS['in_progress']).toContain('employee');
+      expect(SPECIALIST_PERMITTED_TRANSITIONS['assigned']).toContain('in_progress');
+      expect(SPECIALIST_PERMITTED_TRANSITIONS['in_progress']).toContain('resolved');
     });
   });
 

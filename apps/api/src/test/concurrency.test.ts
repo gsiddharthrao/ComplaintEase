@@ -51,6 +51,7 @@ const mockSupabase = {
           success: true,
           complaint_id: args.p_complaint_id,
           to_status: args.p_new_status,
+          version: 7,
           new_version: 7,
         },
         error: null,

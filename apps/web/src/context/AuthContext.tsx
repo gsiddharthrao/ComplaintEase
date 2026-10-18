@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import type { Profile } from '@complaintease/shared';
 import { supabase } from '../lib/supabase.js';
@@ -22,50 +22,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const inFlightPromiseRef = useRef<Promise<Profile | null> | null>(null);
+  const activeUserIdRef = useRef<string | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+
   const fetchProfile = async (): Promise<Profile | null> => {
-    try {
-      const data = await api.auth.me();
-      setProfile(data.profile);
-      return data.profile;
-    } catch (err) {
-      console.warn('Could not fetch user profile:', err);
-      setProfile(null);
-      return null;
+    // Return existing in-flight promise to prevent duplicate concurrent network calls
+    if (inFlightPromiseRef.current) {
+      return inFlightPromiseRef.current;
     }
+
+    const currentTargetId = activeUserIdRef.current;
+    const promise = (async () => {
+      try {
+        const data = await api.auth.me();
+        // Guard against stale user resolution (e.g. logged out while request was in flight)
+        if (isMountedRef.current && activeUserIdRef.current === currentTargetId) {
+          setProfile(data.profile);
+        }
+        return data.profile;
+      } catch (err) {
+        console.warn('Could not fetch user profile:', err);
+        if (isMountedRef.current && activeUserIdRef.current === currentTargetId) {
+          setProfile(null);
+        }
+        return null;
+      } finally {
+        inFlightPromiseRef.current = null;
+      }
+    })();
+
+    inFlightPromiseRef.current = promise;
+    return promise;
   };
 
   useEffect(() => {
-    // Try live Supabase session
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchProfile().finally(() => setLoading(false));
-        } else {
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        setLoading(false);
-      });
+    isMountedRef.current = true;
 
-    // Supabase auth change listener
+    // Supabase auth change listener handles both INITIAL_SESSION and subsequent events
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
+    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      if (!isMountedRef.current) return;
+
+      const nextUserId = currentSession?.user?.id ?? null;
+      activeUserIdRef.current = nextUserId;
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+
+      if (currentSession?.user) {
+        // De-duplicated fetch
         await fetchProfile();
       } else {
         setProfile(null);
       }
-      setLoading(false);
+
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     });
 
     return () => {
+      isMountedRef.current = false;
       subscription.unsubscribe();
     };
   }, []);

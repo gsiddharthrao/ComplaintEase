@@ -230,6 +230,34 @@ describe('Security Fix Regression Tests', () => {
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
+
+    it('rejects confirmation when storage_path extension does not match declared MIME type', async () => {
+      const res = await request(app)
+        .post('/api/v1/complaints/complaint-abc/attachments')
+        .send({
+          file_name: 'test.pdf',
+          file_size: 1024,
+          mime_type: 'image/png', // mismatched MIME vs .pdf extension
+          storage_path: 'user-123/complaint-abc/uuid-file.pdf',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('METADATA_MISMATCH');
+      expect(res.body.error.message).toContain('Declared MIME type');
+    });
+  });
+
+  describe('Health Endpoint Root Alias', () => {
+    it('serves health status on root /health for container orchestrators', async () => {
+      const { healthRouter } = await import('../routes/health.js');
+      const testApp = express();
+      testApp.use(healthRouter);
+
+      const res = await request(testApp).get('/health');
+      expect([200, 503]).toContain(res.status);
+      expect(res.body).toHaveProperty('status');
+      expect(res.body).toHaveProperty('database');
+    });
   });
 
   describe('Admin Self-Demotion Prevention', () => {

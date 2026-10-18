@@ -145,10 +145,22 @@ export const ComplaintDetail: React.FC = () => {
   const currentStatus = complaint.status as ComplaintStatus;
   const userRole = profile?.role || 'employee';
 
+  const isAssignedSpecialist =
+    userRole === 'employee' &&
+    Boolean(
+      complaint.assigned_to &&
+        (complaint.assigned_to.id === profile?.id ||
+          (profile?.full_name && complaint.assigned_to.full_name === profile.full_name)),
+    );
+
+  const isComplaintCreator = userRole === 'employee' && complaint.created_by === profile?.id;
+
   const handleExecuteTransition = (newStatus: ComplaintStatus) => {
     transitionMutation.mutate({
       new_status: newStatus,
-      note: transitionNote || (newStatus === 'closed' ? 'Closed by administrator and archived' : `Status updated to ${newStatus}`),
+      note:
+        transitionNote ||
+        (newStatus === 'closed' ? 'Closed by administrator and archived' : `Status updated to ${newStatus}`),
       expected_version: complaint.version,
     });
   };
@@ -429,24 +441,111 @@ export const ComplaintDetail: React.FC = () => {
           </div>
         </div>
       ) : (
-        /* Employee Actions: Reopen if resolved */
-        currentStatus === 'resolved' && (
-          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-3xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition-colors">
-            <div>
-              <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">Is this incident still not resolved?</h4>
-              <p className="text-xs text-amber-700 dark:text-amber-400">You can reopen this complaint to have staff review it again.</p>
+        <>
+          {/* Specialist Incident Resolution Hub */}
+          {isAssignedSpecialist && (
+            <div className="bg-emerald-50/70 dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900/60 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4 transition-colors">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Specialist Incident Resolution Hub</span>
+                  </h3>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
+                    You are the designated specialist for this incident. Advance ticket status as work proceeds.
+                  </p>
+                </div>
+                <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-bold border border-emerald-300 dark:border-emerald-800 self-start sm:self-auto flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Active Assignment
+                </span>
+              </div>
+
+              {transitionError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-center space-x-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                  <span>{transitionError}</span>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                {currentStatus === 'assigned' && (
+                  <button
+                    type="button"
+                    onClick={handleQuickInProgress}
+                    disabled={transitionMutation.isPending}
+                    className="flex-1 sm:flex-none py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>⚡ Start Work (Under Progress)</span>
+                  </button>
+                )}
+
+                {currentStatus === 'in_progress' && (
+                  <button
+                    type="button"
+                    onClick={handleQuickResolve}
+                    disabled={transitionMutation.isPending}
+                    className="flex-1 sm:flex-none py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>✓ Mark Resolved</span>
+                  </button>
+                )}
+
+                {currentStatus === 'resolved' && (
+                  <div className="w-full flex items-center gap-3 bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Incident marked resolved. Awaiting administrative inspection and closure.
+                    </span>
+                  </div>
+                )}
+
+                {(currentStatus === 'closed' || currentStatus === 'rejected') && (
+                  <div className="w-full flex items-center gap-3 bg-slate-100 dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <CheckCircle2 className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      This ticket is {currentStatus} (terminal state). No further transitions are permitted.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {(currentStatus === 'assigned' || currentStatus === 'in_progress') && (
+                <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/60">
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">Progress Note:</span>
+                  <input
+                    type="text"
+                    value={transitionNote}
+                    onChange={(e) => setTransitionNote(e.target.value)}
+                    placeholder="Describe action taken (e.g., Replaced faulty component and verified status)..."
+                    className="w-full text-xs text-slate-800 dark:text-slate-100 bg-transparent outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                  />
+                </div>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => handleExecuteTransition('reopened')}
-              disabled={transitionMutation.isPending}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center gap-1.5 shrink-0"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reopen Complaint</span>
-            </button>
-          </div>
-        )
+          )}
+
+          {/* Creator Actions: Reopen if resolved */}
+          {isComplaintCreator && currentStatus === 'resolved' && (
+            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-3xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition-colors">
+              <div>
+                <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">Is this incident still not resolved?</h4>
+                <p className="text-xs text-amber-700 dark:text-amber-400">You can reopen this complaint to have staff review it again.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleExecuteTransition('reopened')}
+                disabled={transitionMutation.isPending}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center gap-1.5 shrink-0"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reopen Complaint</span>
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Tabs: Timeline vs Discussion vs Attachments */}
